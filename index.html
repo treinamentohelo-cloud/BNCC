@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BNCC Tracker</title>
+    
+    <!-- Favicon de Formatura (Graduation Cap) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234F46E5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 10v6M2 10l10-5 10 5-10 5z'/%3E%3Cpath d='M6 12v5c3 3 9 3 12 0v-5'/%3E%3C/svg%3E" />
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -20,12 +24,14 @@
     "react/": "https://esm.sh/react@^19.2.3/",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
     "recharts": "https://esm.sh/recharts@^3.6.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.90.1"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
+    <!-- Ponto de entrada para o Vite processar o React -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
