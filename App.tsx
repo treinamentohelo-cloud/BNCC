@@ -5,13 +5,13 @@ import {
   BookOpen, 
   AlertTriangle, 
   LogOut, 
-  LayoutDashboard,
-  Menu,
-  X,
-  Loader2,
-  WifiOff,
-  Users,
-  GraduationCap,
+  LayoutDashboard, 
+  Menu, 
+  X, 
+  Loader2, 
+  WifiOff, 
+  Users, 
+  GraduationCap, 
   ClipboardCheck
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
@@ -30,9 +30,97 @@ import {
   Skill, 
   Assessment, 
   AssessmentStatus, 
-  Page,
-  User
+  Page, 
+  User,
+  ClassDailyLog
 } from './types';
+
+// --- Helper Functions for Data Mapping (snake_case DB <-> camelCase App) ---
+
+const mapClassFromDB = (c: any): ClassGroup => ({
+  id: c.id,
+  name: c.name,
+  grade: c.grade,
+  year: c.year,
+  shift: c.shift,
+  status: c.status,
+  teacherId: c.teacher_id,        // DB uses snake_case
+  isRemediation: c.is_remediation // DB uses snake_case
+});
+
+const mapClassToDB = (c: Partial<ClassGroup>) => ({
+  id: c.id,
+  name: c.name,
+  grade: c.grade,
+  year: c.year,
+  shift: c.shift,
+  status: c.status,
+  teacher_id: c.teacherId || null,          // Convert to snake_case
+  is_remediation: c.isRemediation ?? false  // Convert to snake_case
+});
+
+const mapStudentFromDB = (s: any): Student => ({
+  id: s.id,
+  name: s.name,
+  classId: s.class_id,            // DB uses snake_case
+  avatarUrl: s.avatar_url,        // DB uses snake_case
+  registrationNumber: s.registration_number, // DB uses snake_case
+  birthDate: s.birth_date,        // DB uses snake_case
+  parentName: s.parent_name,      // DB uses snake_case
+  phone: s.phone,
+  status: s.status,
+  remediationEntryDate: s.remediation_entry_date, // Novo campo
+  remediationExitDate: s.remediation_exit_date    // Novo campo
+});
+
+const mapStudentToDB = (s: Partial<Student>) => ({
+  id: s.id,
+  name: s.name,
+  class_id: s.classId || null,               // Convert to snake_case
+  avatar_url: s.avatarUrl || null,           // Convert to snake_case
+  registration_number: s.registrationNumber || null, // Convert to snake_case
+  birth_date: s.birthDate || null,           // Convert to snake_case
+  parent_name: s.parentName || null,         // Convert to snake_case
+  phone: s.phone || null,
+  status: s.status || 'active',
+  remediation_entry_date: s.remediationEntryDate || null,
+  remediation_exit_date: s.remediationExitDate || null
+});
+
+const mapAssessmentFromDB = (a: any): Assessment => ({
+  id: a.id,
+  studentId: a.student_id,        // DB uses snake_case
+  skillId: a.skill_id,            // DB uses snake_case
+  date: a.date,
+  status: a.status,
+  notes: a.notes
+});
+
+const mapAssessmentToDB = (a: Assessment) => ({
+  id: a.id,
+  student_id: a.studentId,        // Convert to snake_case
+  skill_id: a.skillId,            // Convert to snake_case
+  date: a.date,
+  status: a.status,
+  notes: a.notes
+});
+
+const mapLogFromDB = (l: any): ClassDailyLog => ({
+  id: l.id,
+  classId: l.class_id,
+  date: l.date,
+  content: l.content,
+  attendance: l.attendance || {}
+});
+
+const mapLogToDB = (l: ClassDailyLog) => ({
+  id: l.id,
+  class_id: l.classId,
+  date: l.date,
+  content: l.content,
+  attendance: l.attendance
+});
+
 
 export default function App() {
   // --- Global State ---
@@ -51,6 +139,7 @@ export default function App() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [logs, setLogs] = useState<ClassDailyLog[]>([]);
 
   // --- Initialize Data & Realtime ---
   useEffect(() => {
@@ -65,13 +154,15 @@ export default function App() {
           { data: studentsData, error: studentsError },
           { data: skillsData, error: skillsError },
           { data: assessmentsData, error: assessmentsError },
-          { data: usersData, error: usersError }
+          { data: usersData, error: usersError },
+          { data: logsData, error: logsError }
         ] = await Promise.all([
           supabase.from('classes').select('*'),
           supabase.from('students').select('*'),
           supabase.from('skills').select('*'),
           supabase.from('assessments').select('*'),
-          supabase.from('users').select('*')
+          supabase.from('users').select('*'),
+          supabase.from('class_daily_logs').select('*')
         ]);
 
         if (classesError) throw classesError;
@@ -79,15 +170,21 @@ export default function App() {
         if (skillsError) throw skillsError;
         if (assessmentsError) throw assessmentsError;
 
-        if (classesData) setClasses(classesData);
-        if (studentsData) setStudents(studentsData);
+        if (classesData) setClasses(classesData.map(mapClassFromDB));
+        if (studentsData) setStudents(studentsData.map(mapStudentFromDB));
         if (skillsData) setSkills(skillsData);
-        if (assessmentsData) setAssessments(assessmentsData);
+        if (assessmentsData) setAssessments(assessmentsData.map(mapAssessmentFromDB));
         if (usersData) setUsers(usersData);
+        if (logsData) setLogs(logsData.map(mapLogFromDB));
 
       } catch (err: any) {
         console.error('Erro ao carregar dados:', err);
-        setConnectionError(err.message || 'Falha ao conectar ao banco de dados');
+        // Não bloqueia se o erro for apenas da tabela nova que pode não existir ainda
+        if (err.message?.includes('class_daily_logs')) {
+             console.warn('Tabela class_daily_logs não encontrada. Funcionalidade limitada.');
+        } else {
+             setConnectionError(err.message || 'Falha ao conectar ao banco de dados');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -98,44 +195,15 @@ export default function App() {
     // Setup Realtime Subscription
     const subscription = supabase
       .channel('public:db_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public' },
-        (payload) => {
-          handleRealtimeEvent(payload);
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+         // Optimistic updates are handled locally
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(subscription);
     };
   }, []);
-
-  const handleRealtimeEvent = (payload: any) => {
-    const { table, eventType, new: newRecord, old: oldRecord } = payload;
-    console.log('Realtime Event:', table, eventType);
-
-    const updateState = (setter: React.Dispatch<React.SetStateAction<any[]>>) => {
-      setter(prev => {
-        if (eventType === 'INSERT') {
-          if (prev.some(i => i.id === newRecord.id)) return prev;
-          return [...prev, newRecord];
-        } else if (eventType === 'UPDATE') {
-          return prev.map(i => i.id === newRecord.id ? newRecord : i);
-        } else if (eventType === 'DELETE') {
-          return prev.filter(i => i.id !== oldRecord.id);
-        }
-        return prev;
-      });
-    };
-
-    if (table === 'assessments') updateState(setAssessments);
-    else if (table === 'skills') updateState(setSkills);
-    else if (table === 'users') updateState(setUsers);
-    else if (table === 'classes') updateState(setClasses);
-    else if (table === 'students') updateState(setStudents);
-  };
 
   // --- Handlers ---
 
@@ -197,18 +265,10 @@ export default function App() {
   const handleAddAssessment = async (newAssessment: Assessment) => {
     setAssessments(prev => [...prev, newAssessment]);
     try {
-      const payload = {
-          id: newAssessment.id,
-          studentId: newAssessment.studentId, // Ensure match with DB quotes
-          skillId: newAssessment.skillId,     // Ensure match with DB quotes
-          date: newAssessment.date,
-          status: newAssessment.status,
-          notes: newAssessment.notes
-      };
-      
+      const payload = mapAssessmentToDB(newAssessment);
       const { error } = await supabase.from('assessments').insert([payload]);
       if (error) {
-        console.error("Erro insert assessment:", error);
+        console.error("Erro insert assessment:", JSON.stringify(error));
         setAssessments(prev => prev.filter(a => a.id !== newAssessment.id));
         alert(`Erro ao salvar avaliação: ${error.message}`);
       }
@@ -221,7 +281,6 @@ export default function App() {
     try {
        const { error } = await supabase.from('assessments').delete().eq('id', id);
        if(error) { 
-           console.error("Erro delete assessment:", error);
            setAssessments(prevData); 
            alert(`Erro ao excluir: ${error.message}`); 
        }
@@ -233,7 +292,6 @@ export default function App() {
     try {
       const { error } = await supabase.from('skills').insert([newSkill]);
       if (error) {
-        console.error("Erro insert skill:", error);
         setSkills(prev => prev.filter(s => s.id !== newSkill.id));
         alert(`Erro ao salvar habilidade: ${error.message}`);
       }
@@ -260,42 +318,28 @@ export default function App() {
     } catch(e) { setSkills(prevData); }
   };
 
-  // --- Class Handling Fix ---
+  // --- Class Handling ---
   const handleAddClass = async (newClass: ClassGroup) => {
-    // Optimistic update
     setClasses(prev => [...prev, newClass]);
-    
     try {
-      // Validate teacherId exists to prevent Foreign Key errors
       let safeTeacherId: string | null = null;
-      
       if (newClass.teacherId && newClass.teacherId.trim() !== '') {
           const teacherExists = users.some(u => u.id === newClass.teacherId);
-          if (teacherExists) {
-              safeTeacherId = newClass.teacherId;
-          }
+          if (teacherExists) safeTeacherId = newClass.teacherId;
       }
-
-      // Explicit payload mapping
-      const payload = {
-          id: newClass.id,
-          name: newClass.name,
-          grade: newClass.grade,
-          year: newClass.year,
-          shift: newClass.shift,
-          teacherId: safeTeacherId, // Maps to "teacherId" in DB
-          status: newClass.status || 'active',
-          isRemediation: newClass.isRemediation || false // Maps to "isRemediation" in DB
-      };
+      
+      const payload = mapClassToDB({
+          ...newClass,
+          teacherId: safeTeacherId || undefined
+      });
       
       console.log("Enviando turma para Supabase:", payload);
 
       const { error } = await supabase.from('classes').insert([payload]);
-      
       if (error) {
-        console.error("Supabase Error Classes:", error);
+        console.error("Supabase Error Classes:", JSON.stringify(error, null, 2));
         setClasses(prev => prev.filter(c => c.id !== newClass.id));
-        alert(`Erro ao salvar turma: ${error.message}`);
+        alert(`Erro ao salvar turma: ${error.message}.`);
       }
     } catch (e: any) { 
         console.error("Exception:", e);
@@ -307,60 +351,61 @@ export default function App() {
   const handleUpdateClass = async (updatedClass: ClassGroup) => {
     setClasses(prev => prev.map(c => c.id === updatedClass.id ? updatedClass : c));
     try {
-        let safeTeacherId: string | null = null;
-        if (updatedClass.teacherId && updatedClass.teacherId.trim() !== '') {
+       let safeTeacherId: string | null = null;
+       if (updatedClass.teacherId && updatedClass.teacherId.trim() !== '') {
             const teacherExists = users.some(u => u.id === updatedClass.teacherId);
-            if (teacherExists) {
-                safeTeacherId = updatedClass.teacherId;
-            }
-        }
+            if (teacherExists) safeTeacherId = updatedClass.teacherId;
+       }
 
-       const payload = {
-          name: updatedClass.name,
-          grade: updatedClass.grade,
-          year: updatedClass.year,
-          shift: updatedClass.shift,
-          teacherId: safeTeacherId,
-          status: updatedClass.status,
-          isRemediation: updatedClass.isRemediation
-       };
+       const payload = mapClassToDB({ ...updatedClass, teacherId: safeTeacherId || undefined });
        const { error } = await supabase.from('classes').update(payload).eq('id', updatedClass.id);
-       if(error) alert(`Erro ao atualizar: ${error.message}`);
+       if(error) {
+           alert(`Erro ao atualizar: ${error.message}`);
+       }
     } catch(e) { console.error(e); }
   };
 
   const handleDeleteClass = async (id: string) => {
     const prevData = [...classes];
+    // Optimistic update
     setClasses(prev => prev.filter(c => c.id !== id));
+
     try {
-       const { error } = await supabase.from('classes').delete().eq('id', id);
-       if(error) { 
-           console.error("Delete Error:", error);
-           setClasses(prevData); 
-           alert(`Erro ao excluir: ${error.message}`); 
+       // Primeiro, desvincular alunos para evitar erro de Foreign Key
+       // (Caso o DB não esteja configurado com ON DELETE SET NULL nos alunos)
+       const { error: studentError } = await supabase
+          .from('students')
+          .update({ class_id: null })
+          .eq('class_id', id);
+          
+       if (studentError) {
+           console.error("Erro ao desvincular alunos:", studentError);
+           throw studentError;
        }
-    } catch(e) { setClasses(prevData); }
+
+       // Agora excluir a turma
+       const { error } = await supabase.from('classes').delete().eq('id', id);
+       
+       if(error) { 
+           throw error;
+       }
+    } catch(e: any) { 
+        console.error(e);
+        setClasses(prevData); 
+        alert(`Erro ao excluir a turma: ${e.message || 'Erro desconhecido'}`); 
+    }
   };
 
+  // --- Student Handling ---
   const handleAddStudent = async (newStudent: Student) => {
     setStudents(prev => [...prev, newStudent]);
     try {
-      // Explicit payload
-      const payload = {
-        id: newStudent.id,
-        name: newStudent.name,
-        classId: newStudent.classId,
-        avatarUrl: newStudent.avatarUrl,
-        registrationNumber: newStudent.registrationNumber,
-        birthDate: newStudent.birthDate,
-        parentName: newStudent.parentName,
-        phone: newStudent.phone,
-        status: newStudent.status
-      };
+      const payload = mapStudentToDB(newStudent);
+      console.log("Enviando aluno para Supabase:", payload);
       
       const { error } = await supabase.from('students').insert([payload]);
       if (error) {
-        console.error("Insert Student Error:", error);
+        console.error("Erro insert student:", JSON.stringify(error));
         setStudents(prev => prev.filter(s => s.id !== newStudent.id));
         alert(`Erro ao salvar aluno: ${error.message}`);
       }
@@ -370,9 +415,12 @@ export default function App() {
   const handleUpdateStudent = async (updatedStudent: Student) => {
     setStudents(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
     try {
-       const { error } = await supabase.from('students').update(updatedStudent).eq('id', updatedStudent.id);
-       if(error) alert(`Erro ao atualizar: ${error.message}`);
-    } catch(e) { console.error(e); }
+       const payload = mapStudentToDB(updatedStudent);
+       const { error } = await supabase.from('students').update(payload).eq('id', updatedStudent.id);
+       if(error) {
+           alert(`Erro ao atualizar: ${error.message}`);
+       }
+    } catch(e: any) { console.error(e); alert(e.message); }
   };
   
   const handleDeleteStudent = async (id: string) => {
@@ -387,6 +435,32 @@ export default function App() {
     } catch(e) { setStudents(prevData); }
   };
 
+  // --- Log/Chamada Handling ---
+  const handleAddLog = async (newLog: ClassDailyLog) => {
+      setLogs(prev => [...prev, newLog]);
+      try {
+          const payload = mapLogToDB(newLog);
+          const { error } = await supabase.from('class_daily_logs').insert([payload]);
+          if (error) {
+             setLogs(prev => prev.filter(l => l.id !== newLog.id));
+             alert(`Erro ao salvar diário: ${error.message}`);
+          }
+      } catch (e: any) { console.error(e); }
+  };
+
+  const handleDeleteLog = async (id: string) => {
+      const prevLogs = [...logs];
+      setLogs(prev => prev.filter(l => l.id !== id));
+      try {
+          const { error } = await supabase.from('class_daily_logs').delete().eq('id', id);
+          if (error) {
+             setLogs(prevLogs);
+             alert(`Erro ao excluir diário: ${error.message}`);
+          }
+      } catch (e) { console.error(e); }
+  };
+
+  // --- User Handling ---
   const handleAddUser = async (newUser: User) => {
     setUsers(prev => [...prev, newUser]);
     try {
@@ -402,7 +476,9 @@ export default function App() {
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     try {
       const { error } = await supabase.from('users').update(updatedUser).eq('id', updatedUser.id);
-      if (error) alert(`Erro ao atualizar usuário: ${error.message}`);
+      if (error) {
+          alert(`Erro ao atualizar usuário: ${error.message}`);
+      }
     } catch (e) { console.error(e); }
   };
   
@@ -486,8 +562,14 @@ export default function App() {
              students={students} 
              skills={skills} 
              classes={classes} 
+             users={users}
+             logs={logs}
              onSelectStudent={handleSelectStudent}
              onAddClass={handleAddClass}
+             onUpdateStudent={handleUpdateStudent}
+             onAddLog={handleAddLog}
+             onDeleteLog={handleDeleteLog}
+             onDeleteClass={handleDeleteClass} // Passando a nova prop
           />
         );
       case 'student-detail':

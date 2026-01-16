@@ -1,3 +1,4 @@
+
 export enum AssessmentStatus {
   NAO_ATINGIU = 'nao_atingiu',
   EM_DESENVOLVIMENTO = 'em_desenvolvimento',
@@ -32,6 +33,8 @@ export interface Student {
   parentName?: string; // Responsável
   phone?: string;
   status?: 'active' | 'inactive';
+  remediationEntryDate?: string; // Data de entrada no reforço
+  remediationExitDate?: string;  // Data de saída do reforço
 }
 
 export interface Assessment {
@@ -41,6 +44,14 @@ export interface Assessment {
   date: string;
   status: AssessmentStatus;
   notes?: string;
+}
+
+export interface ClassDailyLog {
+  id: string;
+  classId: string;
+  date: string;
+  content: string;
+  attendance: Record<string, boolean>; // Map studentId -> isPresent
 }
 
 export type UserRole = 'admin' | 'coordenador' | 'professor';
