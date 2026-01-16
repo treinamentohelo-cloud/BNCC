@@ -12,7 +12,8 @@ import {
   WifiOff, 
   Users, 
   GraduationCap, 
-  ClipboardCheck
+  ClipboardCheck,
+  Zap
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { Dashboard } from './components/Dashboard';
@@ -45,7 +46,8 @@ const mapClassFromDB = (c: any): ClassGroup => ({
   shift: c.shift,
   status: c.status,
   teacherId: c.teacher_id,        // DB uses snake_case
-  isRemediation: c.is_remediation // DB uses snake_case
+  isRemediation: c.is_remediation, // DB uses snake_case
+  focusSkills: c.focus_skills || [] // DB uses snake_case JSONB
 });
 
 const mapClassToDB = (c: Partial<ClassGroup>) => ({
@@ -56,7 +58,8 @@ const mapClassToDB = (c: Partial<ClassGroup>) => ({
   shift: c.shift,
   status: c.status,
   teacher_id: c.teacherId || null,          // Convert to snake_case
-  is_remediation: c.isRemediation ?? false  // Convert to snake_case
+  is_remediation: c.isRemediation ?? false, // Convert to snake_case
+  focus_skills: c.focusSkills || []         // Convert to snake_case
 });
 
 const mapStudentFromDB = (s: any): Student => ({
@@ -143,6 +146,20 @@ export default function App() {
 
   // --- Initialize Data & Realtime ---
   useEffect(() => {
+    // 1. Check for persisted session
+    const storedUser = localStorage.getItem('school_app_user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(parsedUser);
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error("Erro ao restaurar sessão:", e);
+        localStorage.removeItem('school_app_user');
+      }
+    }
+
+    // 2. Fetch Data
     const fetchData = async () => {
       try {
         setIsLoading(true);
@@ -180,8 +197,8 @@ export default function App() {
       } catch (err: any) {
         console.error('Erro ao carregar dados:', err);
         // Não bloqueia se o erro for apenas da tabela nova que pode não existir ainda
-        if (err.message?.includes('class_daily_logs')) {
-             console.warn('Tabela class_daily_logs não encontrada. Funcionalidade limitada.');
+        if (err.message?.includes('class_daily_logs') || err.message?.includes('users')) {
+             console.warn('Tabelas opcionais não encontradas ou erro de conexão parcial.');
         } else {
              setConnectionError(err.message || 'Falha ao conectar ao banco de dados');
         }
@@ -220,17 +237,20 @@ export default function App() {
     if (user) {
       setCurrentUser(user);
       setIsAuthenticated(true);
+      localStorage.setItem('school_app_user', JSON.stringify(user)); // PERSIST SESSION
       return true;
     }
 
     if (sanitizedEmail === 'admin@escola.com' && sanitizedPass === '123456') {
-        setCurrentUser({
+        const adminUser = {
             id: 'admin-fallback',
             name: 'Administrador (Sistema)',
             email: 'admin@escola.com',
-            role: 'admin'
-        });
+            role: 'admin' as const
+        };
+        setCurrentUser(adminUser);
         setIsAuthenticated(true);
+        localStorage.setItem('school_app_user', JSON.stringify(adminUser)); // PERSIST SESSION
         return true;
     }
 
@@ -238,6 +258,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('school_app_user'); // CLEAR SESSION
     setIsAuthenticated(false);
     setCurrentUser(null);
     setCurrentPage('dashboard');
@@ -550,9 +571,11 @@ export default function App() {
         return (
            <SkillManager 
              skills={skills} 
+             classes={classes}
              onAddSkill={handleAddSkill} 
              onUpdateSkill={handleUpdateSkill} 
              onDeleteSkill={handleDeleteSkill} 
+             onUpdateClass={handleUpdateClass}
            />
         );
       case 'remediation':
@@ -569,7 +592,7 @@ export default function App() {
              onUpdateStudent={handleUpdateStudent}
              onAddLog={handleAddLog}
              onDeleteLog={handleDeleteLog}
-             onDeleteClass={handleDeleteClass} // Passando a nova prop
+             onDeleteClass={handleDeleteClass}
           />
         );
       case 'student-detail':
@@ -578,7 +601,8 @@ export default function App() {
               studentId={selectedStudentId} 
               students={students} 
               skills={skills} 
-              assessments={assessments} 
+              assessments={assessments}
+              classes={classes} // Adicionado: Passando classes para o componente
               onAddAssessment={handleAddAssessment} 
               onBack={() => {
                   if (selectedClassId) {
@@ -617,7 +641,7 @@ export default function App() {
       <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-[#f0fdf4] to-[#e6fffa]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-[#10898b]" size={48} />
-          <p className="text-[#000039] font-medium">Carregando BNCC Tracker...</p>
+          <p className="text-[#000039] font-medium">Carregando sistema...</p>
         </div>
       </div>
     );
@@ -643,8 +667,8 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#f0fdfa] overflow-hidden">
-      <div className="md:hidden fixed top-0 w-full bg-gradient-to-r from-[#10898b] to-[#0d7274] text-white z-20 flex items-center justify-between px-4 h-16 shadow-md">
-        <span className="font-bold text-lg">BNCC Tracker</span>
+      <div className="md:hidden fixed top-0 w-full bg-[#0f172a] text-white z-20 flex items-center justify-between px-4 h-16 shadow-md border-b border-white/10 print:hidden">
+        <span className="font-bold text-lg flex items-center gap-2"><GraduationCap size={20} /> EDUCAÇÃO 5.0</span>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
            {isMobileMenuOpen ? <X /> : <Menu />}
         </button>
@@ -653,17 +677,25 @@ export default function App() {
       <aside className={`
         fixed inset-y-0 left-0 z-10 w-64 text-white transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:inset-0
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-        pt-16 md:pt-0 bg-gradient-to-b from-[#10898b] to-[#0d7274] shadow-xl
+        pt-16 md:pt-0 bg-[#0f172a] shadow-xl border-r border-white/5
+        print:hidden
       `}>
         <div className="h-full flex flex-col">
-          <div className="p-6 hidden md:block border-b border-white/10">
-            <div className="flex items-center gap-3 mb-2">
-               <div className="bg-white/20 p-2 rounded-lg">
-                  <BookOpen size={24} className="text-white" />
+          <div className="p-6 hidden md:block border-b border-white/10 relative overflow-hidden">
+            {/* Abstract Header Decoration */}
+            <div className="absolute -top-4 -right-4 w-20 h-20 bg-[#10898b] rounded-full blur-[30px] opacity-20"></div>
+            
+            <div className="flex items-center gap-3 mb-2 relative z-10">
+               <div className="bg-gradient-to-br from-[#10898b] to-[#2dd4bf] p-2 rounded-lg shadow-lg">
+                  <GraduationCap size={24} className="text-white" />
                </div>
-               <h1 className="text-xl font-bold tracking-tight text-white">BNCC Tracker</h1>
+               <div>
+                  <h1 className="text-xl font-extrabold tracking-tight text-white leading-tight">EDUCAÇÃO <span className="text-[#2dd4bf]">5.0</span></h1>
+               </div>
             </div>
-            <p className="text-teal-100 text-xs mt-1 opacity-80">Sistema de Gestão Escolar</p>
+            <p className="text-slate-400 text-[10px] mt-2 uppercase tracking-widest font-semibold flex items-center gap-1">
+                <Zap size={10} className="text-[#10898b]" /> Gestão Inteligente
+            </p>
           </div>
 
           <nav className="flex-1 px-4 py-6 space-y-2">
@@ -677,32 +709,32 @@ export default function App() {
             {(currentUser?.role === 'admin' || currentUser?.role === 'coordenador') && (
               <>
                 <div className="pt-4 pb-2">
-                   <p className="px-2 text-xs font-semibold text-teal-200 uppercase tracking-wider opacity-80">Administração</p>
+                   <p className="px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Administração</p>
                 </div>
                 <NavItem icon={<Users size={20} />} label="Equipe" active={currentPage === 'users'} onClick={() => handleNavigate('users')} />
               </>
             )}
           </nav>
 
-          <div className="p-4 border-t border-white/10 bg-black/10">
+          <div className="p-4 border-t border-white/10 bg-slate-900/50">
             <div className="flex items-center gap-3 mb-4 px-2">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg">
-                <UserIcon size={16} className="text-[#10898b]" />
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#10898b] to-[#0f172a] flex items-center justify-center shadow-lg border border-white/10">
+                <UserIcon size={16} className="text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium">{currentUser?.name || 'Usuário'}</p>
-                <p className="text-xs text-teal-200 capitalize">{currentUser?.role || 'Visitante'}</p>
+                <p className="text-sm font-medium text-white">{currentUser?.name.split(' ')[0] || 'Usuário'}</p>
+                <p className="text-xs text-slate-400 capitalize">{currentUser?.role || 'Visitante'}</p>
               </div>
             </div>
-            <button onClick={handleLogout} className="w-full flex items-center gap-2 text-teal-100 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors">
-              <LogOut size={18} />
-              <span>Sair</span>
+            <button onClick={handleLogout} className="w-full flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 p-2 rounded-lg transition-colors text-sm">
+              <LogOut size={16} />
+              <span>Sair do Sistema</span>
             </button>
           </div>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto pt-16 md:pt-0 relative w-full bg-[#f0fdfa]">
+      <main className="flex-1 overflow-auto pt-16 md:pt-0 relative w-full bg-[#f8fafc]">
         <div className="max-w-7xl mx-auto p-4 md:p-8">
           {renderContent()}
         </div>
@@ -716,8 +748,11 @@ export default function App() {
 }
 
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; active: boolean; onClick: () => void; badge?: number }> = ({ icon, label, active, onClick, badge }) => (
-  <button onClick={onClick} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 ${active ? 'bg-white text-[#10898b] shadow-lg font-bold' : 'text-teal-100 hover:bg-white/10 hover:text-white'}`}>
-    <div className="flex items-center gap-3">{icon}<span className="font-medium">{label}</span></div>
-    {badge ? <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md">{badge}</span> : null}
+  <button onClick={onClick} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${active ? 'bg-[#10898b] text-white shadow-lg shadow-[#10898b]/20 font-semibold' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+    <div className="flex items-center gap-3">
+        <span className={`${active ? 'text-white' : 'text-slate-500 group-hover:text-white transition-colors'}`}>{icon}</span>
+        <span>{label}</span>
+    </div>
+    {badge ? <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">{badge}</span> : null}
   </button>
 );

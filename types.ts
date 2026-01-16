@@ -21,6 +21,7 @@ export interface ClassGroup {
   teacherId?: string; // ID do usuário professor
   status?: 'active' | 'inactive';
   isRemediation?: boolean; // Nova flag para turmas de reforço
+  focusSkills?: string[]; // IDs das habilidades foco desta turma
 }
 
 export interface Student {

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { ArrowLeft, PlusCircle, Check, AlertTriangle, Clock, ClipboardCheck, X } from 'lucide-react';
-import { Assessment, AssessmentStatus, Skill, Student } from '../types';
+import { ArrowLeft, PlusCircle, Check, AlertTriangle, Clock, ClipboardCheck, X, Star } from 'lucide-react';
+import { Assessment, AssessmentStatus, Skill, Student, ClassGroup } from '../types';
 
 interface StudentDetailProps {
   studentId: string;
   students: Student[];
   skills: Skill[];
   assessments: Assessment[];
+  classes?: ClassGroup[];
   onAddAssessment: (a: Assessment) => void;
   onBack: () => void;
 }
@@ -16,6 +17,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
   students,
   skills,
   assessments,
+  classes = [],
   onAddAssessment,
   onBack
 }) => {
@@ -28,6 +30,9 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
   const [notes, setNotes] = useState('');
 
   if (!student) return null;
+
+  const studentClass = classes.find(c => c.id === student.classId);
+  const focusSkillsIds = studentClass?.focusSkills || [];
 
   const studentAssessments = assessments.filter(a => a.studentId === studentId);
 
@@ -107,6 +112,11 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
             <p className="text-gray-500">Histórico de Desenvolvimento</p>
+            {studentClass && (
+                 <p className="text-xs text-[#10898b] mt-1 font-medium bg-[#bfe4cd]/30 px-2 py-0.5 rounded inline-block">
+                    {studentClass.name}
+                 </p>
+            )}
           </div>
         </div>
         <button 
@@ -125,29 +135,33 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
               {subject}
             </div>
             <div className="divide-y divide-gray-100">
-              {items.map(({ skill, assessment }) => (
-                <div key={skill.id} className="p-4 md:p-6 hover:bg-gray-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="bg-indigo-50 text-[#10898b] text-xs font-mono px-2 py-0.5 rounded border border-[#bfe4cd]">
-                        {skill.code}
-                      </span>
-                      {getStatusBadge(assessment?.status)}
+              {items.map(({ skill, assessment }) => {
+                const isFocus = focusSkillsIds.includes(skill.id);
+                return (
+                  <div key={skill.id} className="p-4 md:p-6 hover:bg-gray-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded border ${isFocus ? 'bg-[#10898b] text-white border-[#10898b]' : 'bg-indigo-50 text-[#10898b] border-[#bfe4cd]'}`}>
+                          {skill.code}
+                        </span>
+                        {isFocus && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5"><Star size={8} fill="currentColor" /> Foco</span>}
+                        {getStatusBadge(assessment?.status)}
+                      </div>
+                      <p className="text-gray-800 text-sm">{skill.description}</p>
+                      {assessment?.notes && (
+                        <p className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded inline-block border border-red-100">
+                          <strong>Obs:</strong> {assessment.notes}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-gray-800 text-sm">{skill.description}</p>
-                    {assessment?.notes && (
-                      <p className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded inline-block border border-red-100">
-                        <strong>Obs:</strong> {assessment.notes}
-                      </p>
-                    )}
+                    <div className="text-right min-w-[100px]">
+                      <span className="text-xs text-gray-400">
+                        {assessment ? new Date(assessment.date).toLocaleDateString('pt-BR') : '-'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right min-w-[100px]">
-                    <span className="text-xs text-gray-400">
-                      {assessment ? new Date(assessment.date).toLocaleDateString('pt-BR') : '-'}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
@@ -177,11 +191,14 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-[#000039] bg-gray-50 focus:bg-white"
                 >
                   <option value="">Selecione a habilidade...</option>
-                  {skills.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.code} - {s.subject}
-                    </option>
-                  ))}
+                  {skills.map(s => {
+                    const isFocus = focusSkillsIds.includes(s.id);
+                    return (
+                      <option key={s.id} value={s.id} className={isFocus ? 'font-bold text-[#10898b]' : ''}>
+                        {isFocus ? '★ ' : ''}{s.code} - {s.subject} {isFocus ? '(Foco da Turma)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
                 {selectedSkillId && (
                   <p className="mt-2 text-xs text-gray-600 bg-[#bfe4cd]/20 p-3 rounded-lg border border-[#bfe4cd]">

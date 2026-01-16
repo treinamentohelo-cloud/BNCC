@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, Clock, AlertTriangle, Filter, Search, Trash2, ClipboardCheck, X } from 'lucide-react';
+import { Plus, Check, Clock, AlertTriangle, Filter, Search, Trash2, ClipboardCheck, X, Calendar, User, BookOpen } from 'lucide-react';
 import { Assessment, AssessmentStatus, ClassGroup, Skill, Student } from '../types';
 
 interface AssessmentManagerProps {
@@ -21,6 +21,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterClass, setFilterClass] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Form State
   const [formClassId, setFormClassId] = useState('');
@@ -31,9 +32,15 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 
   // Filtered Lists for View
   const filteredAssessments = assessments.filter(a => {
-      if (filterClass === 'all') return true;
-      const s = students.find(stud => stud.id === a.studentId);
-      return s?.classId === filterClass;
+      const student = students.find(stud => stud.id === a.studentId);
+      const skill = skills.find(s => s.id === a.skillId);
+      
+      const matchesClass = filterClass === 'all' || student?.classId === filterClass;
+      const matchesSearch = searchTerm === '' || 
+                            student?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            skill?.code.toLowerCase().includes(searchTerm.toLowerCase());
+
+      return matchesClass && matchesSearch;
   });
 
   // Derived Lists for Form
@@ -68,11 +75,23 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
   const getStatusBadge = (status: AssessmentStatus) => {
     switch (status) {
       case AssessmentStatus.SUPEROU:
-        return <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">Superou</span>;
+        return (
+          <span className="flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+            <Check size={12} /> Superou
+          </span>
+        );
       case AssessmentStatus.EM_DESENVOLVIMENTO:
-        return <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold">Em Desenv.</span>;
+        return (
+          <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+            <Clock size={12} /> Em Desenv.
+          </span>
+        );
       case AssessmentStatus.NAO_ATINGIU:
-        return <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold">Não Atingiu</span>;
+        return (
+          <span className="flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+            <AlertTriangle size={12} /> Não Atingiu
+          </span>
+        );
       default: return null;
     }
   };
@@ -92,73 +111,94 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-         <Filter size={18} className="text-gray-400" />
-         <select
-            value={filterClass}
-            onChange={(e) => setFilterClass(e.target.value)}
-            className="bg-transparent outline-none text-[#000039] font-medium w-full"
-         >
-             <option value="all">Todas as Turmas</option>
-             {classes.map(c => (
-                 <option key={c.id} value={c.id}>{c.name}</option>
-             ))}
-         </select>
+      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+         <div className="flex-1 relative">
+             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+             <input 
+                type="text"
+                placeholder="Buscar por aluno ou código..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#10898b] outline-none text-[#000039]"
+             />
+         </div>
+         <div className="w-full md:w-64 relative">
+             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+             <select
+                value={filterClass}
+                onChange={(e) => setFilterClass(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#10898b] outline-none appearance-none bg-white text-[#000039]"
+             >
+                 <option value="all">Todas as Turmas</option>
+                 {classes.map(c => (
+                     <option key={c.id} value={c.id}>{c.name}</option>
+                 ))}
+             </select>
+         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-            <table className="w-full text-left">
-            <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Data</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Aluno</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Habilidade</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Resultado</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Ações</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-                {filteredAssessments.slice().reverse().map(assessment => {
-                    const student = students.find(s => s.id === assessment.studentId);
-                    const skill = skills.find(s => s.id === assessment.skillId);
-                    const classInfo = classes.find(c => c.id === student?.classId);
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredAssessments.slice().reverse().map(assessment => {
+            const student = students.find(s => s.id === assessment.studentId);
+            const skill = skills.find(s => s.id === assessment.skillId);
+            const classInfo = classes.find(c => c.id === student?.classId);
 
-                    return (
-                        <tr key={assessment.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="p-4 text-sm text-gray-500 whitespace-nowrap">
-                                {new Date(assessment.date).toLocaleDateString('pt-BR')}
-                            </td>
-                            <td className="p-4">
-                                <div className="font-medium text-[#000039]">{student?.name || 'Desconhecido'}</div>
-                                <div className="text-xs text-gray-500">{classInfo?.name}</div>
-                            </td>
-                            <td className="p-4">
-                                <div className="text-sm text-[#10898b] font-mono bg-[#bfe4cd]/30 inline-block px-1 rounded mb-1">{skill?.code}</div>
-                                <div className="text-xs text-gray-600 line-clamp-1" title={skill?.description}>{skill?.description}</div>
-                            </td>
-                            <td className="p-4 text-center">
-                                {getStatusBadge(assessment.status)}
-                            </td>
-                            <td className="p-4 text-right">
-                                {onDeleteAssessment && (
-                                    <button 
-                                        onClick={() => handleDelete(assessment.id)}
-                                        className="text-gray-400 hover:text-red-500 p-1"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                )}
-                            </td>
-                        </tr>
-                    );
-                })}
-            </tbody>
-            </table>
-        </div>
+            return (
+                <div key={assessment.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition-all p-5 relative group flex flex-col justify-between h-full">
+                    {/* Header: Date & Status */}
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="bg-gray-50 text-gray-500 text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
+                            <Calendar size={12} />
+                            {new Date(assessment.date).toLocaleDateString('pt-BR')}
+                        </div>
+                        {getStatusBadge(assessment.status)}
+                    </div>
+
+                    {/* Body: Student & Skill Info */}
+                    <div className="mb-4">
+                        <div className="flex items-center gap-3 mb-3">
+                             <div className="w-10 h-10 rounded-full bg-[#bfe4cd] flex items-center justify-center text-[#10898b] font-bold shrink-0">
+                                 {student?.name.charAt(0)}
+                             </div>
+                             <div>
+                                 <h4 className="font-bold text-[#000039] leading-tight line-clamp-1" title={student?.name}>
+                                     {student?.name || 'Aluno Desconhecido'}
+                                 </h4>
+                                 <p className="text-xs text-gray-500">{classInfo?.name}</p>
+                             </div>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                             <div className="flex items-center gap-2 mb-1">
+                                 <BookOpen size={14} className="text-[#10898b]" />
+                                 <span className="font-mono text-xs font-bold text-[#10898b] bg-[#bfe4cd]/30 px-1.5 rounded">{skill?.code}</span>
+                             </div>
+                             <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed" title={skill?.description}>
+                                 {skill?.description}
+                             </p>
+                        </div>
+                    </div>
+
+                    {/* Footer: Delete Action */}
+                    <div className="mt-auto pt-3 border-t border-gray-50 flex justify-end">
+                        {onDeleteAssessment && (
+                            <button 
+                                onClick={() => handleDelete(assessment.id)}
+                                className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-medium opacity-0 group-hover:opacity-100"
+                            >
+                                <Trash2 size={14} /> Excluir
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        })}
         {filteredAssessments.length === 0 && (
-             <div className="p-12 text-center text-gray-500">
-                Nenhuma avaliação registrada com os filtros atuais.
+             <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-xl border-2 border-dashed border-gray-200">
+                <div className="mx-auto w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                    <ClipboardCheck className="text-gray-300" size={24} />
+                </div>
+                Nenhuma avaliação encontrada com os filtros atuais.
             </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Users, GraduationCap, Plus, Camera, Calendar, Phone, User as UserIcon, Edit2, Trash2, ArrowLeft, X } from 'lucide-react';
+import { ChevronRight, Users, GraduationCap, Plus, Camera, Calendar, Phone, User as UserIcon, Edit2, Trash2, ArrowLeft, X, Target } from 'lucide-react';
 import { ClassGroup, Student, User } from '../types';
 
 interface ClassListProps {
@@ -181,27 +181,27 @@ export const ClassList: React.FC<ClassListProps> = ({
           {classes.map((cls) => {
             const studentCount = students.filter(s => s.classId === cls.id).length;
             const teacherName = users.find(u => u.id === cls.teacherId)?.name || 'Sem professor';
-            
             const isRemediation = cls.isRemediation;
-            // Padronizando cores para o tema Teal (#10898b)
-            const borderColor = isRemediation ? 'border-t-orange-500' : 'border-t-[#10898b]';
-            const iconBg = isRemediation ? 'bg-orange-100 text-orange-600' : 'bg-[#bfe4cd] text-[#10898b]';
+            const focusCount = cls.focusSkills?.length || 0;
             
             return (
               <div 
                 key={cls.id}
                 onClick={() => onSelectClass(cls.id)}
-                className={`bg-white rounded-xl shadow-sm border border-gray-100 border-t-4 ${borderColor} p-6 cursor-pointer hover:shadow-lg transition-all group relative overflow-hidden`}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 border-t-4 border-t-[#10898b] p-6 cursor-pointer hover:shadow-lg transition-all group relative overflow-hidden"
               >
                 {cls.status === 'inactive' && (
                   <div className="absolute top-2 right-2 bg-gray-100 text-gray-500 text-[10px] px-2 py-1 rounded font-medium uppercase tracking-wider">Arquivada</div>
                 )}
+                {/* Etiqueta Semântica para Reforço - Único lugar com laranja */}
                 {isRemediation && (
-                   <div className="absolute top-2 right-2 bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider shadow-sm">Reforço</div>
+                   <div className="absolute top-2 right-2 bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider shadow-sm flex items-center gap-1">
+                      Reforço
+                   </div>
                 )}
                 
                 <div className="flex items-start justify-between mb-4 mt-2">
-                  <div className={`p-3 rounded-xl transition-colors ${iconBg}`}>
+                  <div className="p-3 rounded-xl transition-colors bg-[#bfe4cd] text-[#10898b]">
                     <GraduationCap size={28} />
                   </div>
                   <div className="flex flex-col items-end">
@@ -215,14 +215,22 @@ export const ClassList: React.FC<ClassListProps> = ({
                 <h3 className="text-xl font-bold text-[#000039] mb-1 group-hover:text-[#10898b] transition-colors">{cls.name}</h3>
                 <p className="text-gray-500 text-sm mb-4 line-clamp-1">{cls.grade}</p>
                 
-                <div className="flex items-center gap-2 mb-4 bg-gray-50 p-2 rounded-lg">
+                <div className="flex items-center gap-2 mb-2 bg-gray-50 p-2 rounded-lg">
                     <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center border border-gray-200">
                         <UserIcon size={12} className="text-gray-400"/>
                     </div>
                     <span className="text-xs text-gray-600 font-medium truncate">{teacherName}</span>
                 </div>
+
+                {/* Focus Skills Badge */}
+                {focusCount > 0 && (
+                   <div className="mb-4 inline-flex items-center gap-1.5 text-xs text-[#0d7274] bg-[#bfe4cd]/30 px-2 py-1 rounded border border-[#bfe4cd]/50">
+                      <Target size={12} />
+                      <strong>{focusCount}</strong> Habilidades Foco
+                   </div>
+                )}
                 
-                <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+                <div className={`flex items-center justify-between border-t border-gray-100 pt-3 ${focusCount > 0 ? '' : 'mt-4'}`}>
                   <div className="flex items-center text-gray-500 text-sm font-medium">
                     <Users size={16} className="mr-2 text-[#10898b]" />
                     {studentCount} Alunos
@@ -334,7 +342,7 @@ export const ClassList: React.FC<ClassListProps> = ({
       {isClassModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#bfe4cd]">
-             {/* Header com Gradiente igual ao Login */}
+             {/* Header com Gradiente Padrão Teal */}
              <div className="px-6 py-5 bg-gradient-to-r from-[#10898b] to-[#0d7274] flex justify-between items-center">
                 <h3 className="font-bold text-xl text-white flex items-center gap-2">
                    <GraduationCap className="text-[#bfe4cd]" /> 
@@ -434,7 +442,7 @@ export const ClassList: React.FC<ClassListProps> = ({
       {isStudentModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#bfe4cd]">
-             {/* Header com Gradiente igual ao Login */}
+             {/* Header com Gradiente Padrão Teal */}
              <div className="px-6 py-5 bg-gradient-to-r from-[#10898b] to-[#0d7274] flex justify-between items-center">
                 <h3 className="font-bold text-xl text-white flex items-center gap-2">
                    <Users className="text-[#bfe4cd]" />

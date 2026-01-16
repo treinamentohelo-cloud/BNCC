@@ -7,6 +7,8 @@
 -- Adiciona a coluna para identificar se é turma de reforço e o ID do professor
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS is_remediation BOOLEAN DEFAULT false;
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_id TEXT;
+-- Adiciona coluna para array de IDs de habilidades foco (armazenado como JSON array de strings)
+ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS focus_skills JSONB DEFAULT '[]'::jsonb;
 
 -- 2. CORREÇÃO NA TABELA DE ALUNOS (students)
 -- Adiciona campos de perfil e dados pessoais
@@ -30,18 +32,35 @@ CREATE TABLE IF NOT EXISTS public.class_daily_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. CONFIGURAÇÃO DE SEGURANÇA (RLS)
--- Habilita segurança na nova tabela
+-- 4. CRIAÇÃO DA TABELA DE USUÁRIOS (users)
+-- Garante que a tabela de usuários exista para o login funcionar
+CREATE TABLE IF NOT EXISTS public.users (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    password TEXT,
+    role TEXT NOT NULL DEFAULT 'professor',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. CONFIGURAÇÃO DE SEGURANÇA (RLS)
+-- Habilita segurança nas tabelas
 ALTER TABLE public.class_daily_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- Remove política antiga se existir para evitar conflito
+-- Remove políticas antigas se existirem para evitar conflito
 DROP POLICY IF EXISTS "Enable access for all users" ON public.class_daily_logs;
+DROP POLICY IF EXISTS "Enable access for all users" ON public.users;
 
--- Cria nova política permitindo leitura e escrita para o aplicativo
+-- Cria novas políticas permitindo leitura e escrita para o aplicativo
 CREATE POLICY "Enable access for all users" ON public.class_daily_logs
     FOR ALL USING (true) 
     WITH CHECK (true);
 
--- 5. ATUALIZAÇÃO DO CACHE
+CREATE POLICY "Enable access for all users" ON public.users
+    FOR ALL USING (true) 
+    WITH CHECK (true);
+
+-- 6. ATUALIZAÇÃO DO CACHE
 -- Força o Supabase a reconhecer as mudanças imediatamente
 NOTIFY pgrst, 'reload config';

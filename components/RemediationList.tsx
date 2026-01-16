@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ArrowRight, ClipboardList, PlusCircle, X, School, GraduationCap, UserPlus, BookOpen, Calendar, CheckSquare, Square, Trash2, Clock, Users, User as UserIcon, Save, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ClipboardList, PlusCircle, X, School, GraduationCap, UserPlus, BookOpen, Calendar, CheckSquare, Square, Trash2, Clock, Users, User as UserIcon, Save, CheckCircle2, Printer, CheckCircle } from 'lucide-react';
 import { Assessment, AssessmentStatus, ClassGroup, Skill, Student, User, ClassDailyLog } from '../types';
 
 interface RemediationListProps {
@@ -53,6 +53,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
   const remediationClasses = classes.filter(c => c.isRemediation);
   
   // Group by Class for Overview
+  // Logic: Show students who have assessments with bad status AND do not have a remediationExitDate
   const remediationItems = assessments.filter(
     (a) => a.status === AssessmentStatus.NAO_ATINGIU || a.status === AssessmentStatus.EM_DESENVOLVIMENTO
   );
@@ -60,13 +61,23 @@ export const RemediationList: React.FC<RemediationListProps> = ({
   const byClass = remediationItems.reduce((acc, item) => {
     const student = students.find(s => s.id === item.studentId);
     if (!student) return acc;
+    
+    // Se o aluno já saiu do reforço, não mostrar na visão geral de "Alunos em Risco"
+    if (student.remediationExitDate) return acc;
+
     const classGroup = classes.find(c => c.id === student.classId);
     if (!classGroup) return acc;
     const skill = skills.find(s => s.id === item.skillId);
     if (!skill) return acc;
 
     if (!acc[classGroup.id]) acc[classGroup.id] = { classInfo: classGroup, items: [] };
-    acc[classGroup.id].items.push({ student, skill, assessment: item });
+    
+    // Evitar duplicatas do mesmo aluno/habilidade se houver múltiplas avaliações (pegar a mais recente se necessário, aqui simplificado)
+    const exists = acc[classGroup.id].items.some(i => i.student.id === student.id && i.skill.id === skill.id);
+    if (!exists) {
+        acc[classGroup.id].items.push({ student, skill, assessment: item });
+    }
+    
     return acc;
   }, {} as Record<string, { classInfo: ClassGroup, items: { student: Student, skill: Skill, assessment: Assessment }[] }>);
 
@@ -114,6 +125,18 @@ export const RemediationList: React.FC<RemediationListProps> = ({
       setSelectedRemediationClassId('');
   };
 
+  const handleFinishRemediation = (student: Student) => {
+      if (!onUpdateStudent) return;
+      const confirmMsg = `Confirma que o aluno ${student.name} concluiu o ciclo de reforço? \n\nO aluno será removido desta lista e estará pronto para uma NOVA AVALIAÇÃO no painel geral.`;
+      
+      if (window.confirm(confirmMsg)) {
+          onUpdateStudent({
+              ...student,
+              remediationExitDate: new Date().toISOString()
+          });
+      }
+  };
+
   const handleSaveLog = (e: React.FormEvent) => {
       e.preventDefault();
       if (!onAddLog || !selectedDailyClass || !dailyContent) return;
@@ -144,17 +167,30 @@ export const RemediationList: React.FC<RemediationListProps> = ({
       }
   };
 
+  const handlePrint = () => {
+      window.print();
+  };
+
   // --- Render Functions ---
 
   const renderOverview = () => (
     <>
+      <div className="flex justify-end mb-4 print:hidden">
+          <button 
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors shadow-sm"
+          >
+              <Printer size={18} /> Imprimir Relatório
+          </button>
+      </div>
+
       {/* Cards de Turmas de Reforço Ativas */}
       {remediationClasses.length > 0 && (
           <div className="mb-8">
               <h3 className="text-lg font-bold text-[#000039] mb-4 flex items-center gap-2">
                   <School className="text-[#10898b]" size={20} /> Turmas de Reforço Ativas
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:grid-cols-2">
                   {remediationClasses.map(cls => {
                       const studentCount = students.filter(s => s.classId === cls.id).length;
                       const teacherName = users.find(u => u.id === cls.teacherId)?.name || 'Sem professor';
@@ -162,10 +198,10 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                       return (
                           <div 
                             key={cls.id}
-                            className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[#10898b] p-6 relative group hover:shadow-lg transition-all"
+                            className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[#10898b] p-6 relative group hover:shadow-lg transition-all break-inside-avoid"
                           >
-                              {/* Botão de Excluir sempre visível e com cor adequada */}
-                              <div className="absolute top-3 right-3 flex gap-1 z-10">
+                              {/* Botão de Excluir sempre visível e com cor adequada (Hidden on print) */}
+                              <div className="absolute top-3 right-3 flex gap-1 z-10 print:hidden">
                                   {onDeleteClass && (
                                     <button 
                                         onClick={(e) => handleDeleteClassClick(e, cls.id)}
@@ -209,7 +245,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
           </div>
       )}
 
-      {remediationItems.length === 0 ? (
+      {remediationItems.length === 0 && Object.keys(byClass).length === 0 ? (
           <div className="bg-green-50 border border-green-200 rounded-xl p-12 text-center">
             <ClipboardList className="mx-auto text-green-500 mb-4" size={48} />
             <h3 className="text-xl font-bold text-green-800 mb-2">Excelente!</h3>
@@ -217,7 +253,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
           </div>
       ) : (
         Object.values(byClass).map(({ classInfo, items }) => (
-          <div key={classInfo.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div key={classInfo.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6 break-inside-avoid">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <div className="flex items-center gap-2">
                   <h3 className="font-bold text-gray-800 text-lg">{classInfo.name}</h3>
@@ -229,12 +265,12 @@ export const RemediationList: React.FC<RemediationListProps> = ({
             </div>
             <div className="divide-y divide-gray-100">
               {items.map(({ student, skill, assessment }) => (
-                <div key={assessment.id} className="p-6 flex flex-col lg:flex-row gap-6 hover:bg-gray-50 transition-colors">
+                <div key={`${student.id}-${assessment.id}`} className="p-6 flex flex-col lg:flex-row gap-6 hover:bg-gray-50 transition-colors">
                   <div className="flex-shrink-0 flex flex-col items-center justify-center min-w-[80px]">
                       <div className="w-12 h-12 bg-[#bfe4cd] text-[#10898b] rounded-full flex items-center justify-center font-bold text-lg mb-2 overflow-hidden border border-[#10898b]/20">
                         {student.avatarUrl ? <img src={student.avatarUrl} className="w-full h-full object-cover"/> : student.name.charAt(0)}
                       </div>
-                      <button onClick={() => onSelectStudent(student.id)} className="text-xs text-[#10898b] font-medium hover:underline">Ver Perfil</button>
+                      <button onClick={() => onSelectStudent(student.id)} className="text-xs text-[#10898b] font-medium hover:underline print:hidden">Ver Perfil</button>
                   </div>
                   
                   <div className="flex-1 space-y-2">
@@ -255,13 +291,26 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                     )}
                   </div>
 
-                  <div className="flex flex-col justify-center items-end min-w-[140px] gap-2">
+                  <div className="flex flex-col justify-center items-end min-w-[140px] gap-2 print:hidden">
                       <span className="text-xs text-gray-400">Avaliado em {new Date(assessment.date).toLocaleDateString()}</span>
+                      
                       <button onClick={() => onSelectStudent(student.id)} className="w-full flex items-center justify-center gap-1 text-sm bg-[#bfe4cd]/30 text-[#10898b] px-3 py-2 rounded-lg hover:bg-[#bfe4cd] transition-colors font-medium">
                         Reavaliar <ArrowRight size={14} />
                       </button>
-                      {!classInfo.isRemediation && onUpdateStudent && (
-                          <button onClick={() => openEnrollModal(student)} className="w-full flex items-center justify-center gap-1 text-sm bg-[#10898b] text-white px-3 py-2 rounded-lg hover:bg-[#0d7274] transition-colors font-medium shadow-sm">
+
+                      {/* Botão de Concluir Reforço - Agora com paleta TEAL e aviso de nova avaliação */}
+                      {onUpdateStudent && !student.remediationExitDate && (
+                          <button 
+                             onClick={() => handleFinishRemediation(student)}
+                             className="w-full flex items-center justify-center gap-1 text-sm bg-[#10898b] border border-[#10898b] text-white px-3 py-2 rounded-lg hover:bg-[#0d7274] transition-colors font-bold shadow-md hover:shadow-lg"
+                             title="Concluir ciclo e liberar para nova avaliação"
+                          >
+                             Concluir Reforço <CheckCircle size={14} />
+                          </button>
+                      )}
+
+                      {!classInfo.isRemediation && onUpdateStudent && !student.remediationExitDate && (
+                          <button onClick={() => openEnrollModal(student)} className="w-full flex items-center justify-center gap-1 text-sm border border-[#10898b] text-[#10898b] bg-white px-3 py-2 rounded-lg hover:bg-[#bfe4cd]/20 transition-colors font-medium">
                             Matricular <UserPlus size={14} />
                           </button>
                       )}
@@ -282,8 +331,8 @@ export const RemediationList: React.FC<RemediationListProps> = ({
 
      return (
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-             {/* Coluna da Esquerda: Formulário */}
-             <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
+             {/* Coluna da Esquerda: Formulário (Hidden on print) */}
+             <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit print:hidden">
                  <h3 className="font-bold text-[#000039] text-lg mb-6 flex items-center gap-2 border-b border-gray-100 pb-3">
                      <div className="bg-[#bfe4cd] p-2 rounded-lg text-[#10898b]">
                         <BookOpen size={20} /> 
@@ -344,9 +393,15 @@ export const RemediationList: React.FC<RemediationListProps> = ({
              </div>
 
              {/* Coluna da Direita: Histórico */}
-             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden print:col-span-3">
+                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                      <h3 className="font-bold text-gray-800">Histórico de Aulas</h3>
+                     <button 
+                        onClick={handlePrint}
+                        className="print:hidden text-sm flex items-center gap-1 text-[#10898b] hover:underline"
+                    >
+                        <Printer size={16} /> Imprimir Diário
+                    </button>
                  </div>
                  <div className="divide-y divide-gray-100">
                      {selectedDailyClass ? (
@@ -357,7 +412,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                                  const presentCount = presentStudents.length;
 
                                  return (
-                                     <div key={log.id} className="p-5 hover:bg-gray-50 transition-colors">
+                                     <div key={log.id} className="p-5 hover:bg-gray-50 transition-colors break-inside-avoid">
                                          <div className="flex justify-between items-start mb-3">
                                              <div className="flex items-center gap-3">
                                                  <span className="bg-[#bfe4cd] text-[#10898b] text-sm font-bold px-3 py-1.5 rounded-lg border border-[#10898b]/20 flex items-center gap-1">
@@ -369,7 +424,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                                                  </span>
                                              </div>
                                              {onDeleteLog && (
-                                                 <button onClick={() => handleDeleteLogClick(log.id)} className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors">
+                                                 <button onClick={() => handleDeleteLogClick(log.id)} className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors print:hidden">
                                                      <Trash2 size={16} />
                                                  </button>
                                              )}
@@ -420,61 +475,71 @@ export const RemediationList: React.FC<RemediationListProps> = ({
       });
 
       return (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <table className="w-full text-left">
-                  <thead>
-                      <tr className="bg-gray-50 border-b border-gray-100">
-                          <th className="p-4 text-xs font-bold text-gray-500 uppercase">Aluno</th>
-                          <th className="p-4 text-xs font-bold text-gray-500 uppercase">Turma Atual</th>
-                          <th className="p-4 text-xs font-bold text-gray-500 uppercase">Entrada</th>
-                          <th className="p-4 text-xs font-bold text-gray-500 uppercase">Saída</th>
-                          <th className="p-4 text-xs font-bold text-gray-500 uppercase">Permanência</th>
-                      </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                      {reportStudents.map(s => {
-                          const entry = s.remediationEntryDate ? new Date(s.remediationEntryDate) : null;
-                          const exit = s.remediationExitDate ? new Date(s.remediationExitDate) : null;
-                          const cls = classes.find(c => c.id === s.classId);
+          <>
+            <div className="flex justify-end mb-4 print:hidden">
+                <button 
+                    onClick={handlePrint}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors shadow-sm"
+                >
+                    <Printer size={18} /> Imprimir Histórico
+                </button>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <table className="w-full text-left">
+                    <thead>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase">Aluno</th>
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase">Turma Atual</th>
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase">Entrada</th>
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase">Saída</th>
+                            <th className="p-4 text-xs font-bold text-gray-500 uppercase">Permanência</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {reportStudents.map(s => {
+                            const entry = s.remediationEntryDate ? new Date(s.remediationEntryDate) : null;
+                            const exit = s.remediationExitDate ? new Date(s.remediationExitDate) : null;
+                            const cls = classes.find(c => c.id === s.classId);
 
-                          let duration = '-';
-                          if (entry) {
-                              const end = exit || new Date();
-                              const diffTime = Math.abs(end.getTime() - entry.getTime());
-                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                              duration = `${diffDays} dias`;
-                          }
+                            let duration = '-';
+                            if (entry) {
+                                const end = exit || new Date();
+                                const diffTime = Math.abs(end.getTime() - entry.getTime());
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                                duration = `${diffDays} dias`;
+                            }
 
-                          return (
-                              <tr key={s.id}>
-                                  <td className="p-4 font-medium text-[#000039]">{s.name}</td>
-                                  <td className="p-4 text-sm text-gray-600">{cls?.name || '-'}</td>
-                                  <td className="p-4 text-sm text-green-600 font-mono">
-                                      {entry ? entry.toLocaleDateString() : '-'}
-                                  </td>
-                                  <td className="p-4 text-sm text-red-600 font-mono">
-                                      {exit ? exit.toLocaleDateString() : 'Em curso'}
-                                  </td>
-                                  <td className="p-4 text-sm text-gray-600">
-                                      <span className="flex items-center gap-1">
-                                          <Clock size={14} /> {duration}
-                                      </span>
-                                  </td>
-                              </tr>
-                          );
-                      })}
-                      {reportStudents.length === 0 && (
-                          <tr><td colSpan={5} className="p-8 text-center text-gray-400">Sem dados de relatório.</td></tr>
-                      )}
-                  </tbody>
-              </table>
-          </div>
+                            return (
+                                <tr key={s.id}>
+                                    <td className="p-4 font-medium text-[#000039]">{s.name}</td>
+                                    <td className="p-4 text-sm text-gray-600">{cls?.name || '-'}</td>
+                                    <td className="p-4 text-sm text-green-600 font-mono">
+                                        {entry ? entry.toLocaleDateString() : '-'}
+                                    </td>
+                                    <td className="p-4 text-sm text-red-600 font-mono">
+                                        {exit ? exit.toLocaleDateString() : 'Em curso'}
+                                    </td>
+                                    <td className="p-4 text-sm text-gray-600">
+                                        <span className="flex items-center gap-1">
+                                            <Clock size={14} /> {duration}
+                                        </span>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                        {reportStudents.length === 0 && (
+                            <tr><td colSpan={5} className="p-8 text-center text-gray-400">Sem dados de relatório.</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+          </>
       );
   };
 
   return (
     <div className="space-y-6">
-       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
           <div>
             <h2 className="text-3xl font-bold text-[#000039] flex items-center gap-3">
                 <AlertTriangle className="text-[#10898b]" />
@@ -491,9 +556,15 @@ export const RemediationList: React.FC<RemediationListProps> = ({
              </button>
           )}
         </div>
+        
+        {/* Print Header only visible when printing */}
+        <div className="hidden print:block mb-8 border-b pb-4">
+             <h1 className="text-2xl font-bold text-gray-900">Relatório de Reforço Escolar</h1>
+             <p className="text-gray-500">Data de emissão: {new Date().toLocaleDateString()}</p>
+        </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl w-fit">
+        {/* Navigation Tabs (Hidden on print) */}
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl w-fit print:hidden">
             <button 
                 onClick={() => setActiveTab('overview')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'overview' ? 'bg-white text-[#10898b] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
@@ -523,7 +594,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
 
         {/* Modals (Create Class / Enroll) - Mantidos da versão anterior */}
         {isModalOpen && (
-            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm print:hidden">
                 <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-[#bfe4cd]">
                     <div className="px-6 py-5 bg-gradient-to-r from-[#10898b] to-[#0d7274] flex justify-between items-center">
                         <h3 className="font-bold text-lg text-white flex items-center gap-2">
@@ -553,7 +624,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
         )}
 
         {isEnrollModalOpen && studentToEnroll && (
-            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm print:hidden">
                 <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-[#bfe4cd]">
                     <div className="px-6 py-5 bg-gradient-to-r from-[#10898b] to-[#0d7274] flex justify-between items-center">
                         <h3 className="font-bold text-lg text-white flex items-center gap-2">
