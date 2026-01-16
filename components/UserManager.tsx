@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Shield, User as UserIcon, Key, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Shield, User as UserIcon, Key, Eye, EyeOff, AlertCircle, X } from 'lucide-react';
 import { User, UserRole } from '../types';
 
 interface UserManagerProps {
@@ -71,7 +71,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
     }
 
     const payload: User = {
-      id: editingId || Date.now().toString(),
+      id: editingId || crypto.randomUUID(),
       name: formData.name,
       email: formData.email,
       role: formData.role,
@@ -110,89 +110,89 @@ export const UserManager: React.FC<UserManagerProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-           <h2 className="text-3xl font-bold text-gray-800">Equipe Escolar</h2>
+           <h2 className="text-3xl font-bold text-[#000039]">Equipe Escolar</h2>
            <p className="text-gray-500">Gerenciamento de acesso e permissões (Professores e Coordenadores)</p>
         </div>
         <button 
           onClick={() => { resetForm(); setIsFormOpen(true); }}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-colors"
+          className="bg-[#10898b] hover:bg-[#0d7274] text-white px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-[#10898b]/20 transition-all transform hover:-translate-y-0.5 font-medium"
         >
           <Plus size={18} /> Novo Usuário
         </button>
       </div>
 
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200">
-             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                  {editingId ? <Edit2 size={18} /> : <Plus size={18} />}
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#bfe4cd]">
+             <div className="px-6 py-5 bg-gradient-to-r from-[#10898b] to-[#0d7274] flex justify-between items-center">
+                <h3 className="font-bold text-xl text-white flex items-center gap-2">
+                  {editingId ? <Edit2 size={20} className="text-[#bfe4cd]" /> : <Plus size={20} className="text-[#bfe4cd]" />}
                   {editingId ? 'Editar Usuário' : 'Cadastrar Usuário'}
                 </h3>
-                <button onClick={resetForm} className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <span className="text-2xl">×</span>
+                <button onClick={resetForm} className="text-white/80 hover:text-white transition-colors">
+                  <X size={24} />
                 </button>
              </div>
              
-             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+             <form onSubmit={handleSubmit} className="p-8 space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                  <label className="block text-sm font-semibold text-[#10898b] mb-1.5">Nome Completo</label>
                   <input 
                     required
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-[#000039] bg-gray-50 focus:bg-white"
                     placeholder="Ex: Maria Silva"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">E-mail de Acesso</label>
+                  <label className="block text-sm font-semibold text-[#10898b] mb-1.5">E-mail de Acesso</label>
                   <input 
                     required
                     type="email"
                     value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-[#000039] bg-gray-50 focus:bg-white"
                     placeholder="professor@escola.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-[#10898b] mb-1.5">
                     {editingId ? 'Nova Senha' : 'Senha'}
                   </label>
                   <div className="relative">
-                    <Key size={16} className="absolute left-3 top-3 text-gray-400" />
+                    <Key size={18} className="absolute left-3 top-3.5 text-gray-400" />
                     <input 
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={e => setFormData({...formData, password: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg pl-9 pr-10 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full border border-gray-200 rounded-xl pl-10 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-[#000039] bg-gray-50 focus:bg-white"
                       placeholder={editingId ? "Deixe em branco para manter a atual" : "Mínimo 6 caracteres"}
                     />
                     <button 
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-indigo-600 focus:outline-none"
+                      className="absolute right-3 top-3.5 text-gray-400 hover:text-[#10898b] focus:outline-none"
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                   {editingId && (
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <AlertCircle size={10} />
+                    <p className="text-xs text-gray-500 mt-2 flex items-center gap-1 bg-gray-50 p-2 rounded">
+                      <AlertCircle size={12} />
                       Preencha apenas se desejar alterar a senha do usuário.
                     </p>
                   )}
                 </div>
 
                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Função / Cargo</label>
+                   <label className="block text-sm font-semibold text-[#10898b] mb-1.5">Função / Cargo</label>
                    <select 
                       value={formData.role}
                       onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
                    >
                       <option value="professor">Professor(a)</option>
                       <option value="coordenador">Coordenador(a)</option>
@@ -204,13 +204,13 @@ export const UserManager: React.FC<UserManagerProps> = ({
                    <button 
                      type="button" 
                      onClick={resetForm}
-                     className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                     className="flex-1 bg-white border border-gray-200 text-gray-600 py-3.5 rounded-xl font-medium hover:bg-gray-50 transition-colors"
                    >
                      Cancelar
                    </button>
                    <button 
                      type="submit" 
-                     className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
+                     className="flex-1 bg-[#10898b] text-white py-3.5 rounded-xl font-bold hover:bg-[#0d7274] shadow-lg shadow-[#10898b]/20 transition-all transform hover:-translate-y-0.5"
                    >
                      {editingId ? 'Salvar Alterações' : 'Criar Usuário'}
                    </button>
@@ -227,7 +227,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
           placeholder="Buscar por nome ou e-mail..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm transition-all"
+          className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#10898b] outline-none shadow-sm transition-all text-[#000039]"
         />
       </div>
 
@@ -245,11 +245,11 @@ export const UserManager: React.FC<UserManagerProps> = ({
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                 <td className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700">
+                    <div className="w-10 h-10 rounded-full bg-[#bfe4cd] flex items-center justify-center text-[#10898b]">
                       <UserIcon size={20} />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{user.name}</p>
+                      <p className="font-medium text-[#000039]">{user.name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                   </div>
@@ -267,7 +267,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
                    <div className="flex items-center justify-end gap-2">
                      <button 
                        onClick={() => handleEditClick(user)}
-                       className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                       className="p-2 text-gray-400 hover:text-[#10898b] hover:bg-[#bfe4cd] rounded-lg transition-colors"
                        title="Editar e alterar senha"
                      >
                        <Edit2 size={18} />

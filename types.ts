@@ -13,9 +13,13 @@ export interface Skill {
 
 export interface ClassGroup {
   id: string;
-  name: string;
-  grade: string;
+  name: string; // Ex: Turma A
+  grade: string; // Ex: 1º Ano Fundamental
   year: number;
+  shift?: 'Matutino' | 'Vespertino' | 'Integral' | 'Noturno';
+  teacherId?: string; // ID do usuário professor
+  status?: 'active' | 'inactive';
+  isRemediation?: boolean; // Nova flag para turmas de reforço
 }
 
 export interface Student {
@@ -23,6 +27,11 @@ export interface Student {
   name: string;
   classId: string;
   avatarUrl?: string;
+  registrationNumber?: string; // Matrícula
+  birthDate?: string;
+  parentName?: string; // Responsável
+  phone?: string;
+  status?: 'active' | 'inactive';
 }
 
 export interface Assessment {
@@ -44,4 +53,4 @@ export interface User {
   role: UserRole;
 }
 
-export type Page = 'dashboard' | 'classes' | 'skills' | 'remediation' | 'student-detail' | 'users';
+export type Page = 'dashboard' | 'classes' | 'students' | 'assessments' | 'skills' | 'remediation' | 'student-detail' | 'users';
