@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ArrowRight, ClipboardList, PlusCircle, X, School, GraduationCap, UserPlus, BookOpen, Calendar, CheckSquare, Square, Trash2, Clock, Users, User as UserIcon, Save } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ClipboardList, PlusCircle, X, School, GraduationCap, UserPlus, BookOpen, Calendar, CheckSquare, Square, Trash2, Clock, Users, User as UserIcon, Save, CheckCircle2 } from 'lucide-react';
 import { Assessment, AssessmentStatus, ClassGroup, Skill, Student, User, ClassDailyLog } from '../types';
 
 interface RemediationListProps {
@@ -352,25 +352,51 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                      {selectedDailyClass ? (
                          classLogs.length > 0 ? (
                              classLogs.map(log => {
-                                 const presentCount = Object.values(log.attendance || {}).filter(Boolean).length;
+                                 // Filtra os alunos que estavam presentes
+                                 const presentStudents = students.filter(s => log.attendance?.[s.id]);
+                                 const presentCount = presentStudents.length;
+
                                  return (
-                                     <div key={log.id} className="p-4 hover:bg-gray-50 transition-colors">
-                                         <div className="flex justify-between items-start mb-2">
-                                             <div className="flex items-center gap-2">
-                                                 <span className="bg-[#bfe4cd] text-[#10898b] text-xs font-bold px-2 py-1 rounded">
+                                     <div key={log.id} className="p-5 hover:bg-gray-50 transition-colors">
+                                         <div className="flex justify-between items-start mb-3">
+                                             <div className="flex items-center gap-3">
+                                                 <span className="bg-[#bfe4cd] text-[#10898b] text-sm font-bold px-3 py-1.5 rounded-lg border border-[#10898b]/20 flex items-center gap-1">
+                                                     <Calendar size={14} />
                                                      {new Date(log.date).toLocaleDateString()}
                                                  </span>
-                                                 <span className="text-xs text-gray-500">
+                                                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
                                                      Presença: <strong>{presentCount}</strong> / {studentsInClass.length}
                                                  </span>
                                              </div>
                                              {onDeleteLog && (
-                                                 <button onClick={() => handleDeleteLogClick(log.id)} className="text-gray-400 hover:text-red-500 p-1">
+                                                 <button onClick={() => handleDeleteLogClick(log.id)} className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors">
                                                      <Trash2 size={16} />
                                                  </button>
                                              )}
                                          </div>
-                                         <p className="text-sm text-gray-700">{log.content}</p>
+                                         <p className="text-sm text-gray-700 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
+                                             "{log.content}"
+                                         </p>
+                                         
+                                         {/* Lista Nominal de Presença */}
+                                         <div className="border-t border-gray-100 pt-3">
+                                             <p className="text-xs font-bold text-[#10898b] mb-2 flex items-center gap-1">
+                                                <CheckCircle2 size={12} /> Alunos Presentes:
+                                             </p>
+                                             <div className="flex flex-wrap gap-2">
+                                                 {presentStudents.length > 0 ? (
+                                                     presentStudents.map(s => (
+                                                         <span key={s.id} className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-md font-medium">
+                                                             {s.name}
+                                                         </span>
+                                                     ))
+                                                 ) : (
+                                                     <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">
+                                                        Nenhum aluno presente.
+                                                     </span>
+                                                 )}
+                                             </div>
+                                         </div>
                                      </div>
                                  );
                              })
