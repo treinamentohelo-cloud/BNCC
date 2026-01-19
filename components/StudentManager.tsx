@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Search, Camera, Filter, User, Calendar, Phone, Hash, Edit2, Trash2, Upload, X, Users, Archive, RefreshCcw } from 'lucide-react';
-import { Student, ClassGroup } from '../types';
+import { Student, ClassGroup, User as UserType } from '../types';
 
 interface StudentManagerProps {
   students: Student[];
   classes: ClassGroup[];
+  currentUser: UserType | null;
   onAddStudent: (s: Student) => void;
   onUpdateStudent: (s: Student) => void;
   onDeleteStudent: (id: string) => void;
@@ -15,6 +16,7 @@ interface StudentManagerProps {
 export const StudentManager: React.FC<StudentManagerProps> = ({ 
   students, 
   classes, 
+  currentUser,
   onAddStudent,
   onUpdateStudent,
   onDeleteStudent,
@@ -25,6 +27,8 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
   const [filterClass, setFilterClass] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const canDelete = currentUser?.role !== 'professor';
 
   // Form State
   const [formData, setFormData] = useState<Partial<Student>>({
@@ -242,8 +246,8 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                                 {isActive ? <Archive size={16} /> : <RefreshCcw size={16} />}
                              </button>
 
-                             {/* Physical Delete (Only shown if inactive, optional safety) */}
-                             {!isActive && (
+                             {/* Physical Delete (Only shown if inactive, optional safety) - Hidden for Professors */}
+                             {canDelete && !isActive && (
                                 <button 
                                     onClick={(e) => handleDeleteClick(e, student.id)}
                                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

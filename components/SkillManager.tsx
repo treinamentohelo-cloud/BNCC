@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Search, BookOpen, Edit2, Trash2, Link as LinkIcon, X, CheckSquare, Square, School } from 'lucide-react';
-import { Skill, ClassGroup } from '../types';
+import { Skill, ClassGroup, User as UserType } from '../types';
 
 interface SkillManagerProps {
   skills: Skill[];
   classes?: ClassGroup[];
+  currentUser: UserType | null;
   onAddSkill: (s: Skill) => void;
   onUpdateSkill: (s: Skill) => void;
   onDeleteSkill: (id: string) => void;
@@ -14,6 +15,7 @@ interface SkillManagerProps {
 export const SkillManager: React.FC<SkillManagerProps> = ({ 
     skills, 
     classes = [],
+    currentUser,
     onAddSkill,
     onUpdateSkill,
     onDeleteSkill,
@@ -27,6 +29,8 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
   // State for Linking Modal
   const [linkingSkill, setLinkingSkill] = useState<Skill | null>(null);
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
+
+  const canDelete = currentUser?.role !== 'professor';
 
   const filteredSkills = skills.filter(s => 
     s.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -205,9 +209,11 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
                         <button onClick={() => handleEditClick(skill)} className="p-1.5 text-gray-400 hover:text-[#10898b] rounded hover:bg-[#bfe4cd]">
                             <Edit2 size={16} />
                         </button>
-                        <button onClick={() => handleDeleteClick(skill.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50">
-                            <Trash2 size={16} />
-                        </button>
+                        {canDelete && (
+                            <button onClick={() => handleDeleteClick(skill.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50">
+                                <Trash2 size={16} />
+                            </button>
+                        )}
                     </div>
                 </div>
                 <p className="text-gray-800 font-medium mb-4 line-clamp-3 flex-1">

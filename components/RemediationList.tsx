@@ -9,6 +9,7 @@ interface RemediationListProps {
   classes: ClassGroup[];
   users: User[];
   logs?: ClassDailyLog[];
+  currentUser: User | null;
   onSelectStudent: (id: string) => void;
   onAddClass?: (c: ClassGroup) => void;
   onUpdateStudent?: (s: Student) => void;
@@ -24,6 +25,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
   classes,
   users,
   logs = [],
+  currentUser,
   onSelectStudent,
   onAddClass,
   onUpdateStudent,
@@ -48,6 +50,8 @@ export const RemediationList: React.FC<RemediationListProps> = ({
   const [dailyDate, setDailyDate] = useState(new Date().toISOString().split('T')[0]);
   const [dailyContent, setDailyContent] = useState('');
   const [dailyAttendance, setDailyAttendance] = useState<Record<string, boolean>>({});
+
+  const canDelete = currentUser?.role !== 'professor';
 
   // Filters
   const remediationClasses = classes.filter(c => c.isRemediation);
@@ -202,7 +206,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                           >
                               {/* Botão de Excluir sempre visível e com cor adequada (Hidden on print) */}
                               <div className="absolute top-3 right-3 flex gap-1 z-10 print:hidden">
-                                  {onDeleteClass && (
+                                  {onDeleteClass && canDelete && (
                                     <button 
                                         onClick={(e) => handleDeleteClassClick(e, cls.id)}
                                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
@@ -423,7 +427,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                                                      Presença: <strong>{presentCount}</strong> / {studentsInClass.length}
                                                  </span>
                                              </div>
-                                             {onDeleteLog && (
+                                             {onDeleteLog && canDelete && (
                                                  <button onClick={() => handleDeleteLogClick(log.id)} className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors print:hidden">
                                                      <Trash2 size={16} />
                                                  </button>

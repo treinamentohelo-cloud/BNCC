@@ -8,6 +8,7 @@ interface ClassListProps {
   users: User[];
   logs?: ClassDailyLog[];
   selectedClassId?: string;
+  currentUser: User | null;
   onSelectClass: (id: string) => void;
   onSelectStudent: (id: string) => void;
   onAddClass: (c: ClassGroup) => void;
@@ -28,6 +29,7 @@ export const ClassList: React.FC<ClassListProps> = ({
   users,
   logs = [],
   selectedClassId, 
+  currentUser,
   onSelectClass,
   onSelectStudent,
   onAddClass,
@@ -45,6 +47,8 @@ export const ClassList: React.FC<ClassListProps> = ({
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
+
+  const canDelete = currentUser?.role !== 'professor';
 
   // Class Form State
   const [classFormData, setClassFormData] = useState<Partial<ClassGroup>>({
@@ -341,8 +345,8 @@ export const ClassList: React.FC<ClassListProps> = ({
                          {isActive ? <Archive size={16} /> : <RefreshCcw size={16} />}
                       </button>
 
-                      {/* Botão de Excluir Física (Apenas se inativa e vazia) */}
-                      {!isActive && studentCount === 0 && (
+                      {/* Botão de Excluir Física (Apenas se inativa e vazia) - Oculto para professores */}
+                      {canDelete && !isActive && studentCount === 0 && (
                           <button onClick={(e) => handleDeleteClassClick(e, cls.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Excluir Permanentemente">
                             <Trash2 size={16} />
                           </button>
@@ -547,7 +551,7 @@ export const ClassList: React.FC<ClassListProps> = ({
                                                     Presença: <strong>{presentCount}</strong>
                                                 </span>
                                             </div>
-                                            {onDeleteLog && (
+                                            {onDeleteLog && canDelete && (
                                                 <button onClick={() => handleDeleteLogClick(log.id)} className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50">
                                                     <Trash2 size={16} />
                                                 </button>
@@ -571,7 +575,7 @@ export const ClassList: React.FC<ClassListProps> = ({
         </div>
       )}
 
-      {/* MODAL: NOVA TURMA */}
+      {/* MODAL: NOVA TURMA e MODAL: NOVO ALUNO (Mantidos sem alterações de estrutura) */}
       {isClassModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#eaddcf]">
@@ -670,7 +674,6 @@ export const ClassList: React.FC<ClassListProps> = ({
         </div>
       )}
 
-      {/* MODAL: NOVO ALUNO */}
       {isStudentModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#eaddcf]">
@@ -685,7 +688,6 @@ export const ClassList: React.FC<ClassListProps> = ({
              </div>
              
              <form onSubmit={handleCreateStudent} className="p-8 space-y-5 max-h-[80vh] overflow-y-auto">
-                
                 <div className="flex items-center gap-4">
                    <div className="w-20 h-20 bg-[#fcf9f6] rounded-full flex items-center justify-center border-2 border-dashed border-[#c48b5e]/30 overflow-hidden relative group shrink-0">
                       {studentFormData.avatarUrl ? (

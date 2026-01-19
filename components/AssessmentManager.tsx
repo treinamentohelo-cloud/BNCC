@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Plus, Check, Clock, AlertTriangle, Filter, Search, Trash2, ClipboardCheck, X, Calendar, User, BookOpen } from 'lucide-react';
-import { Assessment, AssessmentStatus, ClassGroup, Skill, Student } from '../types';
+import { Assessment, AssessmentStatus, ClassGroup, Skill, Student, User as UserType } from '../types';
 
 interface AssessmentManagerProps {
   assessments: Assessment[];
   students: Student[];
   classes: ClassGroup[];
   skills: Skill[];
+  currentUser: UserType | null;
   onAddAssessment: (a: Assessment) => void;
   onDeleteAssessment?: (id: string) => void;
 }
@@ -16,6 +17,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
   students,
   classes,
   skills,
+  currentUser,
   onAddAssessment,
   onDeleteAssessment
 }) => {
@@ -23,6 +25,8 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
   const [filterClass, setFilterClass] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   
+  const canDelete = currentUser?.role !== 'professor';
+
   // Form State
   const [formClassId, setFormClassId] = useState('');
   const [formStudentId, setFormStudentId] = useState('');
@@ -187,7 +191,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 
                     {/* Footer: Delete Action */}
                     <div className="mt-auto pt-3 border-t border-gray-50 flex justify-end">
-                        {onDeleteAssessment && (
+                        {onDeleteAssessment && canDelete && (
                             <button 
                                 onClick={() => handleDelete(assessment.id)}
                                 className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1 text-xs font-medium opacity-0 group-hover:opacity-100"

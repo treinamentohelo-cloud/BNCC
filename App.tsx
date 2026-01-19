@@ -474,6 +474,7 @@ export default function App() {
           users={users} 
           logs={logs}
           selectedClassId={selectedClassId || undefined} 
+          currentUser={currentUser}
           onSelectClass={setSelectedClassId} 
           onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} 
           onAddClass={handleAddClass} 
@@ -491,6 +492,7 @@ export default function App() {
         {currentPage === 'students' && <StudentManager 
           students={students} 
           classes={classes} 
+          currentUser={currentUser}
           onAddStudent={handleAddStudent} 
           onUpdateStudent={handleUpdateStudent} 
           onDeleteStudent={handleDeleteStudent} 
@@ -498,9 +500,9 @@ export default function App() {
           onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} 
         />}
         
-        {currentPage === 'assessments' && <AssessmentManager assessments={assessments} students={students} classes={classes} skills={skills} onAddAssessment={handleAddAssessment} onDeleteAssessment={handleDeleteAssessment} />}
-        {currentPage === 'remediation' && <RemediationList assessments={assessments} students={students} skills={skills} classes={classes} users={users} logs={logs} onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} onAddClass={handleAddClass} onDeleteClass={handleDeleteClass} onUpdateStudent={handleUpdateStudent} onAddLog={handleAddLog} onDeleteLog={handleDeleteLog} />}
-        {currentPage === 'skills' && <SkillManager skills={skills} classes={classes} onAddSkill={handleAddSkill} onUpdateSkill={handleUpdateSkill} onDeleteSkill={handleDeleteSkill} onUpdateClass={handleUpdateClass} />}
+        {currentPage === 'assessments' && <AssessmentManager assessments={assessments} students={students} classes={classes} skills={skills} currentUser={currentUser} onAddAssessment={handleAddAssessment} onDeleteAssessment={handleDeleteAssessment} />}
+        {currentPage === 'remediation' && <RemediationList assessments={assessments} students={students} skills={skills} classes={classes} users={users} logs={logs} currentUser={currentUser} onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} onAddClass={handleAddClass} onDeleteClass={handleDeleteClass} onUpdateStudent={handleUpdateStudent} onAddLog={handleAddLog} onDeleteLog={handleDeleteLog} />}
+        {currentPage === 'skills' && <SkillManager skills={skills} classes={classes} currentUser={currentUser} onAddSkill={handleAddSkill} onUpdateSkill={handleUpdateSkill} onDeleteSkill={handleDeleteSkill} onUpdateClass={handleUpdateClass} />}
         {currentPage === 'student-detail' && selectedStudentId && <StudentDetail studentId={selectedStudentId} students={students} skills={skills} assessments={assessments} classes={classes} onAddAssessment={handleAddAssessment} onBack={() => setCurrentPage('students')} />}
         {currentPage === 'users' && <UserManager users={users} currentUser={currentUser} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} />}
       </main>
