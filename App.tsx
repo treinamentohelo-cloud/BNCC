@@ -86,6 +86,7 @@ export default function App() {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Garante que a página inicial seja SEMPRE o dashboard
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -115,7 +116,7 @@ export default function App() {
       if (st) setStudents(st.map(mapStudentFromDB));
       if (sk) setSkills(sk);
       if (ass) setAssessments(ass.map(mapAssessmentFromDB));
-      if (us) setUsers(us);
+      if (us) setUsers(us); // Users mapeados diretamente, status incluído
       if (lg) setLogs(lg.map(mapLogFromDB));
 
     } catch (err) {
@@ -128,28 +129,33 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated) {
         fetchData();
+        // Reforça o redirecionamento para o dashboard ao carregar a aplicação autenticada
+        setCurrentPage('dashboard');
     }
   }, [isAuthenticated]);
 
   const handleLogin = async (email: string, pass: string): Promise<boolean> => {
-    // Busca usuário no banco para login real (se já houver usuários cadastrados)
-    // Fallback para admin hardcoded se banco estiver vazio ou para setup inicial
     let { data: dbUser } = await supabase.from('users').select('*').ilike('email', email).eq('password', pass).single();
     
     if (dbUser) {
+        if (dbUser.status === 'inactive') {
+            alert('Acesso negado: Usuário inativo. Contate o administrador.');
+            return false;
+        }
+
         setCurrentUser(dbUser);
         setIsAuthenticated(true);
         localStorage.setItem('school_app_user', JSON.stringify(dbUser));
-        setCurrentPage('dashboard');
+        setCurrentPage('dashboard'); // Redireciona explicitamente para o Dashboard
         return true;
     }
 
     if (email === 'admin@escola.com' && pass === '123456') {
-      const activeUser = { id: 'admin-fallback', name: 'Admin Master', email: 'admin@escola.com', role: 'admin' as const };
+      const activeUser = { id: 'admin-fallback', name: 'Admin Master', email: 'admin@escola.com', role: 'admin' as const, status: 'active' as const };
       setCurrentUser(activeUser);
       setIsAuthenticated(true);
       localStorage.setItem('school_app_user', JSON.stringify(activeUser));
-      setCurrentPage('dashboard');
+      setCurrentPage('dashboard'); // Redireciona explicitamente para o Dashboard
       return true;
     }
     return false;
@@ -159,7 +165,7 @@ export default function App() {
     localStorage.removeItem('school_app_user');
     setIsAuthenticated(false);
     setCurrentUser(null);
-    setCurrentPage('dashboard');
+    setCurrentPage('dashboard'); // Reseta para o Dashboard ao sair
   };
 
   // --- CRUD OPERATIONS ---
@@ -227,8 +233,6 @@ export default function App() {
 
   const handleDeleteClass = async (id: string) => {
       try {
-          // Lógica de "Soft Delete" (Inativação) se houver dependências
-          // 1. Verifica se há alunos
           const { count } = await supabase
             .from('students')
             .select('*', { count: 'exact', head: true })
@@ -243,7 +247,6 @@ export default function App() {
                   await fetchData();
               }
           } else {
-              // Sem alunos, pode excluir
               const { error } = await supabase.from('classes').delete().eq('id', id);
               if(error) throw error;
               await fetchData();
@@ -291,8 +294,6 @@ export default function App() {
 
   const handleDeleteStudent = async (id: string) => {
       try {
-          // Lógica de "Soft Delete" (Inativação) se houver histórico
-          // 1. Verifica se há avaliações
           const { count } = await supabase
             .from('assessments')
             .select('*', { count: 'exact', head: true })
@@ -307,7 +308,6 @@ export default function App() {
                   await fetchData();
               }
           } else {
-              // Sem histórico, pode excluir
               const { error } = await supabase.from('students').delete().eq('id', id);
               if(error) throw error;
               await fetchData();
@@ -315,7 +315,7 @@ export default function App() {
       } catch(e: any) { alert('Erro ao processar aluno: ' + e.message); }
   };
 
-  // 4. HABILIDADES (SKILLS)
+  // 4. HABILIDADES
   const handleAddSkill = async (s: Skill) => {
       try {
           const { error } = await supabase.from('skills').insert([{
@@ -357,7 +357,8 @@ export default function App() {
               name: u.name,
               email: u.email,
               password: u.password,
-              role: u.role
+              role: u.role,
+              status: u.status || 'active'
           }]);
           if(error) throw error;
           await fetchData();
@@ -369,9 +370,9 @@ export default function App() {
           const payload: any = {
               name: u.name,
               email: u.email,
-              role: u.role
+              role: u.role,
+              status: u.status
           };
-          // Só atualiza senha se fornecida
           if(u.password) payload.password = u.password;
 
           const { error } = await supabase.from('users').update(payload).eq('id', u.id);
@@ -382,13 +383,27 @@ export default function App() {
 
   const handleDeleteUser = async (id: string) => {
       try {
+          // Check dependency: Is this user a teacher in any class?
+          const linkedClasses = classes.filter(c => c.teacherId === id);
+
+          if (linkedClasses.length > 0) {
+              const confirmSoft = window.confirm(`⚠️ Este usuário é responsável por ${linkedClasses.length} turma(s).\n\nA exclusão física não é permitida para manter a integridade dos dados.\n\nDeseja INATIVAR o usuário, bloqueando seu acesso?`);
+              if (confirmSoft) {
+                  const { error } = await supabase.from('users').update({ status: 'inactive' }).eq('id', id);
+                  if (error) throw error;
+                  alert('Usuário inativado com sucesso.');
+                  await fetchData();
+              }
+              return;
+          }
+
           const { error } = await supabase.from('users').delete().eq('id', id);
           if(error) throw error;
           await fetchData();
       } catch(e:any) { alert('Erro ao excluir usuário: ' + e.message); }
   };
 
-  // 6. LOGS DIÁRIOS
+  // 6. LOGS
   const handleAddLog = async (l: ClassDailyLog) => {
     try {
       const { error } = await supabase.from('class_daily_logs').insert([{
@@ -417,7 +432,6 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#fdfbf7] overflow-hidden font-sans">
-      {/* Sidebar Clara */}
       <aside className="w-72 bg-[#f3efe9] text-[#433422] p-6 hidden md:flex flex-col border-r border-[#eaddcf]">
         <div className="flex items-center gap-3 mb-10 px-2">
             <div className="bg-[#c48b5e] p-2 rounded-xl text-white shadow-md shadow-[#c48b5e]/20"><GraduationCap size={24} /></div>

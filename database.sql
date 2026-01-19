@@ -4,25 +4,23 @@
 -- ====================================================================================
 
 -- 1. CORREÇÃO NA TABELA DE TURMAS (classes)
--- Adiciona a coluna para identificar se é turma de reforço e o ID do professor
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS is_remediation BOOLEAN DEFAULT false;
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_id TEXT;
--- Adiciona coluna para array de IDs de habilidades foco (armazenado como JSON array de strings)
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS focus_skills JSONB DEFAULT '[]'::jsonb;
 
 -- 2. CORREÇÃO NA TABELA DE ALUNOS (students)
--- Adiciona campos de perfil e dados pessoais
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS registration_number TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS birth_date TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS parent_name TEXT;
-
--- Adiciona campos para controle de entrada/saída do reforço escolar
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS remediation_entry_date TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS remediation_exit_date TEXT;
 
--- 3. CRIAÇÃO DA TABELA DE DIÁRIO DE AULAS (class_daily_logs)
--- Esta tabela armazena o conteúdo dado e a chamada
+-- 3. CORREÇÃO NA TABELA DE USUÁRIOS (users)
+-- Adiciona coluna de status para inativação lógica
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+
+-- 4. CRIAÇÃO DAS TABELAS SE NÃO EXISTIREM
 CREATE TABLE IF NOT EXISTS public.class_daily_logs (
     id TEXT PRIMARY KEY,
     class_id TEXT NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
@@ -32,55 +30,32 @@ CREATE TABLE IF NOT EXISTS public.class_daily_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. CRIAÇÃO DA TABELA DE USUÁRIOS (users)
--- Garante que a tabela de usuários exista para o login funcionar
 CREATE TABLE IF NOT EXISTS public.users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     password TEXT,
     role TEXT NOT NULL DEFAULT 'professor',
+    status TEXT DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 5. CONFIGURAÇÃO DE SEGURANÇA (RLS)
--- Habilita segurança nas tabelas
 ALTER TABLE public.class_daily_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- Remove políticas antigas se existirem para evitar conflito
 DROP POLICY IF EXISTS "Enable access for all users" ON public.class_daily_logs;
 DROP POLICY IF EXISTS "Enable access for all users" ON public.users;
 
--- Cria novas políticas permitindo leitura e escrita para o aplicativo
-CREATE POLICY "Enable access for all users" ON public.class_daily_logs
-    FOR ALL USING (true) 
-    WITH CHECK (true);
+CREATE POLICY "Enable access for all users" ON public.class_daily_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Enable access for all users" ON public.users FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Enable access for all users" ON public.users
-    FOR ALL USING (true) 
-    WITH CHECK (true);
+-- 6. REGRAS DE INTEGRIDADE (TRAVA DE EXCLUSÃO)
+ALTER TABLE public.students DROP CONSTRAINT IF EXISTS students_class_id_fkey;
+ALTER TABLE public.students ADD CONSTRAINT students_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id) ON DELETE RESTRICT;
 
--- 6. ATUALIZAÇÃO DO CACHE
--- Força o Supabase a reconhecer as mudanças imediatamente
+ALTER TABLE public.assessments DROP CONSTRAINT IF EXISTS assessments_student_id_fkey;
+ALTER TABLE public.assessments ADD CONSTRAINT assessments_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE RESTRICT;
+
+-- 7. ATUALIZAÇÃO DO CACHE
 NOTIFY pgrst, 'reload config';
-
--- 7. REGRAS DE INTEGRIDADE (NOVO: TRAVA DE EXCLUSÃO)
--- Estas regras impedem que uma Turma ou Aluno sejam excluídos se tiverem dados vinculados.
--- O "ON DELETE RESTRICT" fará o banco retornar erro se tentar deletar, obrigando a inativação via App.
-
--- Constraint: Não pode apagar Turma se tiver Alunos
-ALTER TABLE public.students
-DROP CONSTRAINT IF EXISTS students_class_id_fkey;
-
-ALTER TABLE public.students
-ADD CONSTRAINT students_class_id_fkey
-FOREIGN KEY (class_id) REFERENCES public.classes(id) ON DELETE RESTRICT;
-
--- Constraint: Não pode apagar Aluno se tiver Avaliações
-ALTER TABLE public.assessments
-DROP CONSTRAINT IF EXISTS assessments_student_id_fkey;
-
-ALTER TABLE public.assessments
-ADD CONSTRAINT assessments_student_id_fkey
-FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE RESTRICT;

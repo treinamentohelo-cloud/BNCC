@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Shield, User as UserIcon, Key, Eye, EyeOff, AlertCircle, X, Users } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Shield, User as UserIcon, Key, Eye, EyeOff, AlertCircle, X, Users, CheckCircle, XCircle } from 'lucide-react';
 import { User, UserRole } from '../types';
 
 interface UserManagerProps {
@@ -27,7 +27,8 @@ export const UserManager: React.FC<UserManagerProps> = ({
     name: '',
     email: '',
     password: '',
-    role: 'professor' as UserRole
+    role: 'professor' as UserRole,
+    status: 'active' as 'active' | 'inactive'
   });
 
   const filteredUsers = users.filter(u => 
@@ -36,7 +37,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
   );
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', password: '', role: 'professor' });
+    setFormData({ name: '', email: '', password: '', role: 'professor', status: 'active' });
     setEditingId(null);
     setIsFormOpen(false);
     setShowPassword(false);
@@ -48,7 +49,8 @@ export const UserManager: React.FC<UserManagerProps> = ({
       name: user.name,
       email: user.email,
       password: '', // Password starts empty on edit (only fill to change)
-      role: user.role
+      role: user.role,
+      status: user.status || 'active'
     });
     setIsFormOpen(true);
     setShowPassword(false);
@@ -57,14 +59,12 @@ export const UserManager: React.FC<UserManagerProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation: Email Uniqueness
     const emailExists = users.some(u => u.email.toLowerCase() === formData.email.toLowerCase() && u.id !== editingId);
     if (emailExists) {
       alert("Este e-mail já está sendo utilizado por outro usuário.");
       return;
     }
 
-    // Validation: Password required for new users
     if (!editingId && !formData.password) {
       alert("Senha é obrigatória para novos usuários.");
       return;
@@ -75,15 +75,14 @@ export const UserManager: React.FC<UserManagerProps> = ({
       name: formData.name,
       email: formData.email,
       role: formData.role,
+      status: formData.status
     };
 
-    // Include password only if it's a new user or if user typed a new password during edit
     if (formData.password) {
       payload.password = formData.password;
     }
 
     if (editingId) {
-      // Preserve old password if not changing
       if (!formData.password) {
         const existingUser = users.find(u => u.id === editingId);
         if (existingUser) payload.password = existingUser.password;
@@ -101,9 +100,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
       alert("Você não pode excluir seu próprio usuário.");
       return;
     }
-    if (window.confirm("Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.")) {
-      onDeleteUser(id);
-    }
+    onDeleteUser(id);
   };
 
   return (
@@ -179,25 +176,32 @@ export const UserManager: React.FC<UserManagerProps> = ({
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  {editingId && (
-                    <p className="text-xs text-gray-500 mt-2 flex items-center gap-1 bg-gray-50 p-2 rounded">
-                      <AlertCircle size={12} />
-                      Preencha apenas se desejar alterar a senha do usuário.
-                    </p>
-                  )}
                 </div>
 
-                <div>
-                   <label className="block text-sm font-semibold text-[#10898b] mb-1.5">Função / Cargo</label>
-                   <select 
-                      value={formData.role}
-                      onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
-                   >
-                      <option value="professor">Professor(a)</option>
-                      <option value="coordenador">Coordenador(a)</option>
-                      <option value="admin">Administrador(a)</option>
-                   </select>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                       <label className="block text-sm font-semibold text-[#10898b] mb-1.5">Função / Cargo</label>
+                       <select 
+                          value={formData.role}
+                          onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                       >
+                          <option value="professor">Professor(a)</option>
+                          <option value="coordenador">Coordenador(a)</option>
+                          <option value="admin">Administrador(a)</option>
+                       </select>
+                    </div>
+                    <div>
+                       <label className="block text-sm font-semibold text-[#10898b] mb-1.5">Status da Conta</label>
+                       <select 
+                          value={formData.status}
+                          onChange={e => setFormData({...formData, status: e.target.value as any})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                       >
+                          <option value="active">Ativo</option>
+                          <option value="inactive">Inativo (Bloqueado)</option>
+                       </select>
+                    </div>
                 </div>
 
                 <div className="pt-2 flex gap-3">
@@ -237,6 +241,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
             <tr className="bg-gray-50 border-b border-gray-100">
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Usuário</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Função</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Ações</th>
             </tr>
           </thead>
@@ -245,11 +250,16 @@ export const UserManager: React.FC<UserManagerProps> = ({
               <tr key={user.id} className="hover:bg-[#bfe4cd]/20 transition-colors">
                 <td className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#bfe4cd] flex items-center justify-center text-[#10898b]">
+                    <div className="w-10 h-10 rounded-full bg-[#bfe4cd] flex items-center justify-center text-[#10898b] relative">
                       <UserIcon size={20} />
+                      {user.status === 'inactive' && (
+                         <div className="absolute -bottom-1 -right-1 bg-red-500 text-white rounded-full p-0.5 border border-white">
+                            <X size={10} />
+                         </div>
+                      )}
                     </div>
                     <div>
-                      <p className="font-medium text-[#000039]">{user.name}</p>
+                      <p className={`font-medium ${user.status === 'inactive' ? 'text-gray-400 line-through' : 'text-[#000039]'}`}>{user.name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                   </div>
@@ -263,19 +273,30 @@ export const UserManager: React.FC<UserManagerProps> = ({
                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                    </span>
                 </td>
+                <td className="p-4 text-center">
+                    {user.status === 'inactive' ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">
+                            <XCircle size={12} /> Inativo
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100">
+                            <CheckCircle size={12} /> Ativo
+                        </span>
+                    )}
+                </td>
                 <td className="p-4 text-right">
                    <div className="flex items-center justify-end gap-2">
                      <button 
                        onClick={() => handleEditClick(user)}
                        className="p-2 text-gray-400 hover:text-[#10898b] hover:bg-[#bfe4cd] rounded-lg transition-colors"
-                       title="Editar e alterar senha"
+                       title="Editar"
                      >
                        <Edit2 size={18} />
                      </button>
                      <button 
                        onClick={() => handleDeleteClick(user.id)}
                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                       title="Excluir usuário"
+                       title="Excluir ou Inativar"
                      >
                        <Trash2 size={18} />
                      </button>

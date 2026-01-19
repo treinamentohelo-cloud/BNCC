@@ -1,3 +1,4 @@
+
 export enum AssessmentStatus {
   NAO_ATINGIU = 'nao_atingiu',
   EM_DESENVOLVIMENTO = 'em_desenvolvimento',
@@ -64,6 +65,7 @@ export interface User {
   email: string;
   password?: string; // Optional because we might not fetch it or show it
   role: UserRole;
+  status?: 'active' | 'inactive';
 }
 
 export type Page = 'dashboard' | 'classes' | 'students' | 'assessments' | 'skills' | 'remediation' | 'student-detail' | 'users';
