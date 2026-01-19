@@ -408,7 +408,25 @@ export default function App() {
 
       <main className="flex-1 overflow-auto p-4 md:p-10">
         {currentPage === 'dashboard' && <Dashboard classes={classes} students={students} assessments={assessments} skills={skills} currentUser={currentUser} onNavigateToRemediation={() => setCurrentPage('remediation')} />}
-        {currentPage === 'classes' && <ClassList classes={classes} students={students} users={users} selectedClassId={selectedClassId || undefined} onSelectClass={setSelectedClassId} onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} onAddClass={handleAddClass} onUpdateClass={handleUpdateClass} onDeleteClass={handleDeleteClass} onAddStudent={handleAddStudent} onUpdateStudent={handleUpdateStudent} onDeleteStudent={handleDeleteStudent} />}
+        
+        {currentPage === 'classes' && <ClassList 
+          classes={classes} 
+          students={students} 
+          users={users} 
+          logs={logs}
+          selectedClassId={selectedClassId || undefined} 
+          onSelectClass={setSelectedClassId} 
+          onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} 
+          onAddClass={handleAddClass} 
+          onUpdateClass={handleUpdateClass} 
+          onDeleteClass={handleDeleteClass} 
+          onAddStudent={handleAddStudent} 
+          onUpdateStudent={handleUpdateStudent} 
+          onDeleteStudent={handleDeleteStudent} 
+          onAddLog={handleAddLog}
+          onDeleteLog={handleDeleteLog}
+        />}
+
         {currentPage === 'students' && <StudentManager students={students} classes={classes} onAddStudent={handleAddStudent} onUpdateStudent={handleUpdateStudent} onDeleteStudent={handleDeleteStudent} onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} />}
         {currentPage === 'assessments' && <AssessmentManager assessments={assessments} students={students} classes={classes} skills={skills} onAddAssessment={handleAddAssessment} onDeleteAssessment={handleDeleteAssessment} />}
         {currentPage === 'remediation' && <RemediationList assessments={assessments} students={students} skills={skills} classes={classes} users={users} logs={logs} onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} onAddClass={handleAddClass} onDeleteClass={handleDeleteClass} onUpdateStudent={handleUpdateStudent} onAddLog={handleAddLog} onDeleteLog={handleDeleteLog} />}

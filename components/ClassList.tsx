@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ChevronRight, Users, GraduationCap, Plus, Camera, Calendar, Phone, User as UserIcon, Edit2, Trash2, ArrowLeft, X, Target } from 'lucide-react';
-import { ClassGroup, Student, User } from '../types';
+import { ChevronRight, Users, GraduationCap, Plus, Camera, Calendar, Phone, User as UserIcon, Edit2, Trash2, ArrowLeft, X, Target, BookOpen, Save, CheckSquare, Square, Clock } from 'lucide-react';
+import { ClassGroup, Student, User, ClassDailyLog } from '../types';
 
 interface ClassListProps {
   classes: ClassGroup[];
   students: Student[];
   users: User[];
+  logs?: ClassDailyLog[];
   selectedClassId?: string;
   onSelectClass: (id: string) => void;
   onSelectStudent: (id: string) => void;
@@ -15,12 +16,15 @@ interface ClassListProps {
   onAddStudent: (s: Student) => void;
   onUpdateStudent: (s: Student) => void;
   onDeleteStudent: (id: string) => void;
+  onAddLog?: (l: ClassDailyLog) => void;
+  onDeleteLog?: (id: string) => void;
 }
 
 export const ClassList: React.FC<ClassListProps> = ({ 
   classes, 
   students,
   users,
+  logs = [],
   selectedClassId, 
   onSelectClass,
   onSelectStudent,
@@ -29,8 +33,11 @@ export const ClassList: React.FC<ClassListProps> = ({
   onDeleteClass,
   onAddStudent,
   onUpdateStudent,
-  onDeleteStudent
+  onDeleteStudent,
+  onAddLog,
+  onDeleteLog
 }) => {
+  const [activeTab, setActiveTab] = useState<'students' | 'diary'>('students');
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -56,9 +63,18 @@ export const ClassList: React.FC<ClassListProps> = ({
     status: 'active'
   });
 
+  // Diary Form State
+  const [newLogDate, setNewLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newLogContent, setNewLogContent] = useState('');
+  const [attendance, setAttendance] = useState<Record<string, boolean>>({});
+
   const activeClass = selectedClassId ? classes.find(c => c.id === selectedClassId) : null;
   const filteredStudents = selectedClassId 
     ? students.filter(s => s.classId === selectedClassId) 
+    : [];
+  
+  const classLogs = activeClass 
+    ? logs.filter(l => l.classId === activeClass.id).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     : [];
 
   const handleEditClassClick = (e: React.MouseEvent, cls: ClassGroup) => {
@@ -134,6 +150,37 @@ export const ClassList: React.FC<ClassListProps> = ({
     setStudentFormData({ name: '', avatarUrl: '', registrationNumber: '', birthDate: '', parentName: '', phone: '', status: 'active' });
   };
 
+  // DIARY LOGIC
+  const handleToggleAttendance = (studentId: string) => {
+      setAttendance(prev => ({
+          ...prev,
+          [studentId]: !prev[studentId]
+      }));
+  };
+
+  const handleSaveLog = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!onAddLog || !activeClass || !newLogContent) return;
+
+      onAddLog({
+          id: generateId(),
+          classId: activeClass.id,
+          date: newLogDate,
+          content: newLogContent,
+          attendance: attendance
+      });
+
+      setNewLogContent('');
+      setAttendance({});
+      alert('Registro de aula salvo com sucesso!');
+  };
+
+  const handleDeleteLogClick = (id: string) => {
+      if(onDeleteLog && window.confirm('Deseja excluir este registro?')) {
+          onDeleteLog(id);
+      }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -165,12 +212,14 @@ export const ClassList: React.FC<ClassListProps> = ({
               >
                  <ArrowLeft size={16} /> Voltar
               </button>
-              <button 
-                onClick={() => setIsStudentModalOpen(true)}
-                className="bg-[#c48b5e] hover:bg-[#a0704a] text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-[#c48b5e]/20 transition-all transform hover:-translate-y-0.5 font-medium"
-              >
-                <Plus size={18} /> Novo Aluno
-              </button>
+              {activeTab === 'students' && (
+                <button 
+                    onClick={() => setIsStudentModalOpen(true)}
+                    className="bg-[#c48b5e] hover:bg-[#a0704a] text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-[#c48b5e]/20 transition-all transform hover:-translate-y-0.5 font-medium"
+                >
+                    <Plus size={18} /> Novo Aluno
+                </button>
+              )}
             </>
           )}
         </div>
@@ -263,77 +312,191 @@ export const ClassList: React.FC<ClassListProps> = ({
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-[#eaddcf] overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#fcf9f6] border-b border-[#eaddcf]">
-                <th className="p-4 text-sm font-semibold text-[#8c7e72] uppercase text-xs tracking-wider">Aluno</th>
-                <th className="p-4 text-sm font-semibold text-[#8c7e72] uppercase text-xs tracking-wider">Matrícula</th>
-                <th className="p-4 text-sm font-semibold text-[#8c7e72] uppercase text-xs tracking-wider">Responsável</th>
-                <th className="p-4 text-sm font-semibold text-[#8c7e72] uppercase text-xs tracking-wider text-center">Status</th>
-                <th className="p-4 text-sm font-semibold text-[#8c7e72] text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#fcf9f6]">
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map((student) => (
-                  <tr 
-                    key={student.id} 
-                    className="hover:bg-[#eaddcf]/20 transition-colors cursor-pointer group"
-                    onClick={() => onSelectStudent(student.id)}
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        {student.avatarUrl ? (
-                          <img src={student.avatarUrl} alt={student.name} className="w-10 h-10 rounded-full object-cover border border-[#eaddcf]" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-[#eaddcf] flex items-center justify-center text-[#c48b5e] font-bold border border-[#eaddcf]">
-                            {student.name.charAt(0)}
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium text-[#433422] group-hover:text-[#c48b5e] transition-colors">{student.name}</p>
-                          <p className="text-xs text-[#8c7e72]">{new Date().getFullYear() - new Date(student.birthDate || '').getFullYear()} anos</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4 text-[#8c7e72] text-sm font-mono">{student.registrationNumber || '-'}</td>
-                    <td className="p-4 text-[#8c7e72] text-sm">
-                       <div>{student.parentName || '-'}</div>
-                       <div className="text-xs text-[#8c7e72] flex items-center gap-1">
-                          <Phone size={10} /> {student.phone}
-                       </div>
-                    </td>
-                    <td className="p-4 text-center">
-                       <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide border ${student.status === 'inactive' ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
-                         {student.status === 'inactive' ? 'Inativo' : 'Ativo'}
-                       </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="w-8 h-8 rounded-full bg-[#fcf9f6] flex items-center justify-center text-[#d1c5b8] group-hover:bg-[#eaddcf] group-hover:text-[#c48b5e] transition-all ml-auto">
-                        <ChevronRight size={18} />
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="p-12 text-center text-[#8c7e72] flex flex-col items-center">
-                    <div className="w-12 h-12 bg-[#fcf9f6] rounded-full flex items-center justify-center mb-3">
-                        <Users className="text-[#d1c5b8]" />
+        <div className="space-y-6">
+            {/* TABS DE NAVEGAÇÃO INTERNA DA TURMA */}
+            <div className="flex gap-2 border-b border-[#eaddcf] pb-1">
+                <button 
+                    onClick={() => setActiveTab('students')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'students' ? 'bg-[#c48b5e] text-white' : 'text-[#8c7e72] hover:bg-[#eaddcf]/30'}`}
+                >
+                    <Users size={16} className="inline mr-2" />
+                    Alunos
+                </button>
+                <button 
+                    onClick={() => setActiveTab('diary')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'diary' ? 'bg-[#c48b5e] text-white' : 'text-[#8c7e72] hover:bg-[#eaddcf]/30'}`}
+                >
+                    <BookOpen size={16} className="inline mr-2" />
+                    Diário de Classe
+                </button>
+            </div>
+
+            {/* CONTEÚDO DA ABA: ALUNOS */}
+            {activeTab === 'students' && (
+                <div className="bg-white rounded-xl shadow-sm border border-[#eaddcf] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                    <tr className="bg-[#fcf9f6] border-b border-[#eaddcf]">
+                        <th className="p-4 text-sm font-semibold text-[#8c7e72] uppercase text-xs tracking-wider">Aluno</th>
+                        <th className="p-4 text-sm font-semibold text-[#8c7e72] uppercase text-xs tracking-wider">Matrícula</th>
+                        <th className="p-4 text-sm font-semibold text-[#8c7e72] uppercase text-xs tracking-wider">Responsável</th>
+                        <th className="p-4 text-sm font-semibold text-[#8c7e72] uppercase text-xs tracking-wider text-center">Status</th>
+                        <th className="p-4 text-sm font-semibold text-[#8c7e72] text-right"></th>
+                    </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#fcf9f6]">
+                    {filteredStudents.length > 0 ? (
+                        filteredStudents.map((student) => (
+                        <tr 
+                            key={student.id} 
+                            className="hover:bg-[#eaddcf]/20 transition-colors cursor-pointer group"
+                            onClick={() => onSelectStudent(student.id)}
+                        >
+                            <td className="p-4">
+                            <div className="flex items-center gap-3">
+                                {student.avatarUrl ? (
+                                <img src={student.avatarUrl} alt={student.name} className="w-10 h-10 rounded-full object-cover border border-[#eaddcf]" />
+                                ) : (
+                                <div className="w-10 h-10 rounded-full bg-[#eaddcf] flex items-center justify-center text-[#c48b5e] font-bold border border-[#eaddcf]">
+                                    {student.name.charAt(0)}
+                                </div>
+                                )}
+                                <div>
+                                <p className="font-medium text-[#433422] group-hover:text-[#c48b5e] transition-colors">{student.name}</p>
+                                <p className="text-xs text-[#8c7e72]">{new Date().getFullYear() - new Date(student.birthDate || '').getFullYear()} anos</p>
+                                </div>
+                            </div>
+                            </td>
+                            <td className="p-4 text-[#8c7e72] text-sm font-mono">{student.registrationNumber || '-'}</td>
+                            <td className="p-4 text-[#8c7e72] text-sm">
+                            <div>{student.parentName || '-'}</div>
+                            <div className="text-xs text-[#8c7e72] flex items-center gap-1">
+                                <Phone size={10} /> {student.phone}
+                            </div>
+                            </td>
+                            <td className="p-4 text-center">
+                            <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide border ${student.status === 'inactive' ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+                                {student.status === 'inactive' ? 'Inativo' : 'Ativo'}
+                            </span>
+                            </td>
+                            <td className="p-4 text-right">
+                            <div className="w-8 h-8 rounded-full bg-[#fcf9f6] flex items-center justify-center text-[#d1c5b8] group-hover:bg-[#eaddcf] group-hover:text-[#c48b5e] transition-all ml-auto">
+                                <ChevronRight size={18} />
+                            </div>
+                            </td>
+                        </tr>
+                        ))
+                    ) : (
+                        <tr>
+                        <td colSpan={5} className="p-12 text-center text-[#8c7e72] flex flex-col items-center">
+                            <div className="w-12 h-12 bg-[#fcf9f6] rounded-full flex items-center justify-center mb-3">
+                                <Users className="text-[#d1c5b8]" />
+                            </div>
+                            <p>Nenhum aluno cadastrado nesta turma.</p>
+                            <button 
+                                onClick={() => setIsStudentModalOpen(true)}
+                                className="mt-2 text-[#c48b5e] text-sm font-medium hover:underline"
+                            >
+                                Adicionar primeiro aluno
+                            </button>
+                        </td>
+                        </tr>
+                    )}
+                    </tbody>
+                </table>
+                </div>
+            )}
+
+            {/* CONTEÚDO DA ABA: DIÁRIO DE CLASSE */}
+            {activeTab === 'diary' && (
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {/* Form de Registro */}
+                    <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-[#eaddcf] h-fit">
+                        <h3 className="font-bold text-[#433422] text-lg mb-4 flex items-center gap-2">
+                             <Edit2 size={18} className="text-[#c48b5e]" /> Novo Registro
+                        </h3>
+                        <form onSubmit={handleSaveLog} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Data</label>
+                                <input 
+                                    type="date" 
+                                    value={newLogDate}
+                                    onChange={e => setNewLogDate(e.target.value)}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-[#fcf9f6] focus:bg-white text-[#433422]"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Conteúdo Ministrado</label>
+                                <textarea 
+                                    value={newLogContent}
+                                    onChange={e => setNewLogContent(e.target.value)}
+                                    placeholder="O que foi ensinado hoje..."
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-[#fcf9f6] focus:bg-white text-[#433422] resize-none h-28"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-[#c48b5e] mb-2 ml-1">Chamada</label>
+                                <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-xl p-2 bg-[#fcf9f6] space-y-1">
+                                    {filteredStudents.map(s => (
+                                        <div 
+                                            key={s.id} 
+                                            onClick={() => handleToggleAttendance(s.id)}
+                                            className="flex items-center gap-3 p-2 hover:bg-white rounded-lg cursor-pointer transition-colors"
+                                        >
+                                            {attendance[s.id] ? <CheckSquare className="text-green-600" size={20} /> : <Square className="text-gray-300" size={20} />}
+                                            <span className={`text-sm ${attendance[s.id] ? 'font-bold text-[#433422]' : 'text-gray-500'}`}>{s.name}</span>
+                                        </div>
+                                    ))}
+                                    {filteredStudents.length === 0 && <p className="text-xs text-center text-gray-400 py-2">Sem alunos.</p>}
+                                </div>
+                            </div>
+                            <button type="submit" className="w-full bg-[#c48b5e] text-white py-3 rounded-xl font-bold hover:bg-[#a0704a] shadow-md flex items-center justify-center gap-2">
+                                <Save size={18} /> Salvar Diário
+                            </button>
+                        </form>
                     </div>
-                    <p>Nenhum aluno cadastrado nesta turma.</p>
-                    <button 
-                        onClick={() => setIsStudentModalOpen(true)}
-                        className="mt-2 text-[#c48b5e] text-sm font-medium hover:underline"
-                    >
-                        Adicionar primeiro aluno
-                    </button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+
+                    {/* Lista de Registros */}
+                    <div className="lg:col-span-2 space-y-4">
+                        <h3 className="font-bold text-[#433422] text-lg mb-2 flex items-center gap-2">
+                            <Clock size={18} className="text-[#c48b5e]" /> Histórico de Aulas
+                        </h3>
+                        {classLogs.length > 0 ? (
+                            classLogs.map(log => {
+                                const presentCount = filteredStudents.filter(s => log.attendance?.[s.id]).length;
+                                return (
+                                    <div key={log.id} className="bg-white p-5 rounded-xl shadow-sm border border-[#eaddcf] hover:shadow-md transition-all">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-[#eaddcf] text-[#c48b5e] px-2 py-1 rounded-lg text-xs font-bold font-mono border border-[#c48b5e]/20">
+                                                    {new Date(log.date).toLocaleDateString()}
+                                                </span>
+                                                <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                                    Presença: <strong>{presentCount}</strong>/{filteredStudents.length}
+                                                </span>
+                                            </div>
+                                            {onDeleteLog && (
+                                                <button onClick={() => handleDeleteLogClick(log.id)} className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-700 whitespace-pre-line bg-[#fcf9f6] p-3 rounded-lg border border-[#eaddcf]/50">
+                                            {log.content}
+                                        </p>
+                                    </div>
+                                )
+                            })
+                        ) : (
+                            <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-[#eaddcf] text-[#8c7e72]">
+                                <BookOpen size={32} className="mx-auto mb-2 opacity-50" />
+                                <p>Nenhum registro de aula encontrado.</p>
+                            </div>
+                        )}
+                    </div>
+                 </div>
+            )}
         </div>
       )}
 
