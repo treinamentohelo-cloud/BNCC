@@ -6,11 +6,17 @@ export enum AssessmentStatus {
   SUPEROU = 'superou'
 }
 
+export interface Subject {
+  id: string;
+  name: string;
+}
+
 export interface Skill {
   id: string;
   code: string; // e.g., EF01LP01
   description: string;
   subject: string;
+  year: string; // Novo campo: Ano/Série (ex: "1º Ano")
 }
 
 export interface ClassGroup {

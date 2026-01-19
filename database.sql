@@ -17,10 +17,20 @@ ALTER TABLE public.students ADD COLUMN IF NOT EXISTS remediation_entry_date TEXT
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS remediation_exit_date TEXT;
 
 -- 3. CORREÇÃO NA TABELA DE USUÁRIOS (users)
--- Adiciona coluna de status para inativação lógica
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
 
--- 4. CRIAÇÃO DAS TABELAS SE NÃO EXISTIREM
+-- 4. ATUALIZAÇÃO DA TABELA DE HABILIDADES (skills)
+-- Adiciona coluna de Ano/Série
+ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS year TEXT;
+
+-- 5. CRIAÇÃO DA TABELA DE DISCIPLINAS (subjects)
+CREATE TABLE IF NOT EXISTS public.subjects (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. CRIAÇÃO DAS OUTRAS TABELAS SE NÃO EXISTIREM
 CREATE TABLE IF NOT EXISTS public.class_daily_logs (
     id TEXT PRIMARY KEY,
     class_id TEXT NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
@@ -40,22 +50,39 @@ CREATE TABLE IF NOT EXISTS public.users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 5. CONFIGURAÇÃO DE SEGURANÇA (RLS)
+-- 7. INSERIR DISCIPLINAS PADRÃO (Se a tabela estiver vazia)
+INSERT INTO public.subjects (id, name)
+VALUES 
+  ('sub-lp', 'Língua Portuguesa'),
+  ('sub-mat', 'Matemática'),
+  ('sub-cie', 'Ciências'),
+  ('sub-his', 'História'),
+  ('sub-geo', 'Geografia'),
+  ('sub-art', 'Arte'),
+  ('sub-ing', 'Inglês'),
+  ('sub-edfis', 'Educação Física')
+ON CONFLICT (id) DO NOTHING; 
+-- Nota: O conflito por ID é apenas para evitar erro no script, a constraint unique é no nome.
+
+-- 8. CONFIGURAÇÃO DE SEGURANÇA (RLS)
 ALTER TABLE public.class_daily_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Enable access for all users" ON public.class_daily_logs;
 DROP POLICY IF EXISTS "Enable access for all users" ON public.users;
+DROP POLICY IF EXISTS "Enable access for all users" ON public.subjects;
 
 CREATE POLICY "Enable access for all users" ON public.class_daily_logs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable access for all users" ON public.users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Enable access for all users" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
 
--- 6. REGRAS DE INTEGRIDADE (TRAVA DE EXCLUSÃO)
+-- 9. REGRAS DE INTEGRIDADE (TRAVA DE EXCLUSÃO)
 ALTER TABLE public.students DROP CONSTRAINT IF EXISTS students_class_id_fkey;
 ALTER TABLE public.students ADD CONSTRAINT students_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id) ON DELETE RESTRICT;
 
 ALTER TABLE public.assessments DROP CONSTRAINT IF EXISTS assessments_student_id_fkey;
 ALTER TABLE public.assessments ADD CONSTRAINT assessments_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE RESTRICT;
 
--- 7. ATUALIZAÇÃO DO CACHE
+-- 10. ATUALIZAÇÃO DO CACHE
 NOTIFY pgrst, 'reload config';

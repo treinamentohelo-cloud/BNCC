@@ -29,7 +29,8 @@ import {
   AssessmentStatus, 
   Page, 
   User,
-  ClassDailyLog
+  ClassDailyLog,
+  Subject
 } from './types';
 
 // --- Mapeadores de Banco de Dados ---
@@ -78,6 +79,14 @@ const mapLogFromDB = (l: any): ClassDailyLog => ({
   attendance: l.attendance
 });
 
+const mapSkillFromDB = (s: any): Skill => ({
+    id: s.id,
+    code: s.code,
+    description: s.description,
+    subject: s.subject,
+    year: s.year || '' // Garante que não seja null
+});
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('school_app_user'));
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -97,27 +106,30 @@ export default function App() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [logs, setLogs] = useState<ClassDailyLog[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
       const [
-        { data: cl }, { data: st }, { data: sk }, { data: ass }, { data: us }, { data: lg }
+        { data: cl }, { data: st }, { data: sk }, { data: ass }, { data: us }, { data: lg }, { data: sb }
       ] = await Promise.all([
         supabase.from('classes').select('*'),
         supabase.from('students').select('*'),
         supabase.from('skills').select('*'),
         supabase.from('assessments').select('*'),
         supabase.from('users').select('*'),
-        supabase.from('class_daily_logs').select('*')
+        supabase.from('class_daily_logs').select('*'),
+        supabase.from('subjects').select('*')
       ]);
 
       if (cl) setClasses(cl.map(mapClassFromDB));
       if (st) setStudents(st.map(mapStudentFromDB));
-      if (sk) setSkills(sk);
+      if (sk) setSkills(sk.map(mapSkillFromDB));
       if (ass) setAssessments(ass.map(mapAssessmentFromDB));
-      if (us) setUsers(us); // Users mapeados diretamente, status incluído
+      if (us) setUsers(us); 
       if (lg) setLogs(lg.map(mapLogFromDB));
+      if (sb) setSubjects(sb.sort((a: any, b: any) => a.name.localeCompare(b.name)));
 
     } catch (err) {
       console.error('Erro ao buscar dados:', err);
@@ -328,7 +340,8 @@ export default function App() {
               id: s.id,
               code: s.code,
               description: s.description,
-              subject: s.subject
+              subject: s.subject,
+              year: s.year
           }]);
           if(error) throw error;
           await fetchData();
@@ -340,7 +353,8 @@ export default function App() {
           const { error } = await supabase.from('skills').update({
               code: s.code,
               description: s.description,
-              subject: s.subject
+              subject: s.subject,
+              year: s.year
           }).eq('id', s.id);
           if(error) throw error;
           await fetchData();
@@ -355,7 +369,16 @@ export default function App() {
       } catch(e:any) { alert('Erro ao excluir habilidade: ' + e.message); }
   };
 
-  // 5. USUÁRIOS
+  // 5. DISCIPLINAS
+  const handleAddSubject = async (sub: Subject) => {
+      try {
+          const { error } = await supabase.from('subjects').insert([{ id: sub.id, name: sub.name }]);
+          if (error) throw error;
+          await fetchData();
+      } catch (e: any) { alert('Erro ao criar disciplina: ' + e.message); }
+  }
+
+  // 6. USUÁRIOS
   const handleAddUser = async (u: User) => {
       try {
           const { error } = await supabase.from('users').insert([{
@@ -409,7 +432,7 @@ export default function App() {
       } catch(e:any) { alert('Erro ao excluir usuário: ' + e.message); }
   };
 
-  // 6. LOGS
+  // 7. LOGS
   const handleAddLog = async (l: ClassDailyLog) => {
     try {
       const { error } = await supabase.from('class_daily_logs').insert([{
@@ -502,7 +525,17 @@ export default function App() {
         
         {currentPage === 'assessments' && <AssessmentManager assessments={assessments} students={students} classes={classes} skills={skills} currentUser={currentUser} onAddAssessment={handleAddAssessment} onDeleteAssessment={handleDeleteAssessment} />}
         {currentPage === 'remediation' && <RemediationList assessments={assessments} students={students} skills={skills} classes={classes} users={users} logs={logs} currentUser={currentUser} onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} onAddClass={handleAddClass} onDeleteClass={handleDeleteClass} onUpdateStudent={handleUpdateStudent} onAddLog={handleAddLog} onDeleteLog={handleDeleteLog} />}
-        {currentPage === 'skills' && <SkillManager skills={skills} classes={classes} currentUser={currentUser} onAddSkill={handleAddSkill} onUpdateSkill={handleUpdateSkill} onDeleteSkill={handleDeleteSkill} onUpdateClass={handleUpdateClass} />}
+        {currentPage === 'skills' && <SkillManager 
+            skills={skills} 
+            classes={classes} 
+            subjects={subjects} 
+            currentUser={currentUser} 
+            onAddSkill={handleAddSkill} 
+            onUpdateSkill={handleUpdateSkill} 
+            onDeleteSkill={handleDeleteSkill} 
+            onUpdateClass={handleUpdateClass} 
+            onAddSubject={handleAddSubject}
+        />}
         {currentPage === 'student-detail' && selectedStudentId && <StudentDetail studentId={selectedStudentId} students={students} skills={skills} assessments={assessments} classes={classes} onAddAssessment={handleAddAssessment} onBack={() => setCurrentPage('students')} />}
         {currentPage === 'users' && <UserManager users={users} currentUser={currentUser} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} />}
       </main>
