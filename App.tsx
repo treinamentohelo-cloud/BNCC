@@ -227,10 +227,28 @@ export default function App() {
 
   const handleDeleteClass = async (id: string) => {
       try {
-          const { error } = await supabase.from('classes').delete().eq('id', id);
-          if(error) throw error;
-          await fetchData();
-      } catch(e: any) { alert('Erro ao excluir turma: ' + e.message); }
+          // Lógica de "Soft Delete" (Inativação) se houver dependências
+          // 1. Verifica se há alunos
+          const { count } = await supabase
+            .from('students')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', id);
+
+          if (count && count > 0) {
+              const confirmSoft = window.confirm('⚠️ Esta turma possui alunos matriculados.\n\nPara manter o histórico, ela será marcada como INATIVA em vez de excluída.\n\nDeseja continuar?');
+              if (confirmSoft) {
+                  const { error } = await supabase.from('classes').update({ status: 'inactive' }).eq('id', id);
+                  if (error) throw error;
+                  alert('Turma inativada com sucesso.');
+                  await fetchData();
+              }
+          } else {
+              // Sem alunos, pode excluir
+              const { error } = await supabase.from('classes').delete().eq('id', id);
+              if(error) throw error;
+              await fetchData();
+          }
+      } catch(e: any) { alert('Erro ao processar turma: ' + e.message); }
   };
 
   // 3. ALUNOS
@@ -273,10 +291,28 @@ export default function App() {
 
   const handleDeleteStudent = async (id: string) => {
       try {
-          const { error } = await supabase.from('students').delete().eq('id', id);
-          if(error) throw error;
-          await fetchData();
-      } catch(e: any) { alert('Erro ao excluir aluno: ' + e.message); }
+          // Lógica de "Soft Delete" (Inativação) se houver histórico
+          // 1. Verifica se há avaliações
+          const { count } = await supabase
+            .from('assessments')
+            .select('*', { count: 'exact', head: true })
+            .eq('student_id', id);
+
+          if (count && count > 0) {
+              const confirmSoft = window.confirm('⚠️ Este aluno possui histórico de avaliações.\n\nPara não perder os dados, o cadastro será marcado como INATIVO.\n\nDeseja continuar?');
+              if (confirmSoft) {
+                  const { error } = await supabase.from('students').update({ status: 'inactive' }).eq('id', id);
+                  if (error) throw error;
+                  alert('Aluno inativado com sucesso.');
+                  await fetchData();
+              }
+          } else {
+              // Sem histórico, pode excluir
+              const { error } = await supabase.from('students').delete().eq('id', id);
+              if(error) throw error;
+              await fetchData();
+          }
+      } catch(e: any) { alert('Erro ao processar aluno: ' + e.message); }
   };
 
   // 4. HABILIDADES (SKILLS)

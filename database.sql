@@ -64,3 +64,23 @@ CREATE POLICY "Enable access for all users" ON public.users
 -- 6. ATUALIZAÇÃO DO CACHE
 -- Força o Supabase a reconhecer as mudanças imediatamente
 NOTIFY pgrst, 'reload config';
+
+-- 7. REGRAS DE INTEGRIDADE (NOVO: TRAVA DE EXCLUSÃO)
+-- Estas regras impedem que uma Turma ou Aluno sejam excluídos se tiverem dados vinculados.
+-- O "ON DELETE RESTRICT" fará o banco retornar erro se tentar deletar, obrigando a inativação via App.
+
+-- Constraint: Não pode apagar Turma se tiver Alunos
+ALTER TABLE public.students
+DROP CONSTRAINT IF EXISTS students_class_id_fkey;
+
+ALTER TABLE public.students
+ADD CONSTRAINT students_class_id_fkey
+FOREIGN KEY (class_id) REFERENCES public.classes(id) ON DELETE RESTRICT;
+
+-- Constraint: Não pode apagar Aluno se tiver Avaliações
+ALTER TABLE public.assessments
+DROP CONSTRAINT IF EXISTS assessments_student_id_fkey;
+
+ALTER TABLE public.assessments
+ADD CONSTRAINT assessments_student_id_fkey
+FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE RESTRICT;
