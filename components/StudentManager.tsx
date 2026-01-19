@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Camera, Filter, User, Calendar, Phone, Hash, Edit2, Trash2, Upload, X, Users } from 'lucide-react';
+import { Plus, Search, Camera, Filter, User, Calendar, Phone, Hash, Edit2, Trash2, Upload, X, Users, Archive, RefreshCcw } from 'lucide-react';
 import { Student, ClassGroup } from '../types';
 
 interface StudentManagerProps {
@@ -8,6 +8,7 @@ interface StudentManagerProps {
   onAddStudent: (s: Student) => void;
   onUpdateStudent: (s: Student) => void;
   onDeleteStudent: (id: string) => void;
+  onToggleStatus: (id: string, currentStatus: 'active' | 'inactive') => void;
   onSelectStudent: (id: string) => void;
 }
 
@@ -17,6 +18,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
   onAddStudent,
   onUpdateStudent,
   onDeleteStudent,
+  onToggleStatus,
   onSelectStudent 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,9 +70,20 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
     setIsModalOpen(true);
   };
 
+  const handleToggleStatusClick = (e: React.MouseEvent, student: Student) => {
+      e.stopPropagation();
+      const confirmMsg = student.status === 'active' 
+        ? `Deseja INATIVAR o aluno ${student.name}?\n\nEle não aparecerá nas chamadas, mas o histórico será mantido.`
+        : `Deseja REATIVAR o aluno ${student.name}?`;
+
+      if(window.confirm(confirmMsg)) {
+        onToggleStatus(student.id, student.status || 'active');
+      }
+  }
+
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if(window.confirm('Tem certeza que deseja excluir este aluno?')) {
+    if(window.confirm('Tem certeza que deseja excluir PERMANENTEMENTE este aluno e todas as suas avaliações?')) {
         onDeleteStudent(id);
     }
   };
@@ -169,23 +182,25 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
           <tbody className="divide-y divide-[#fcf9f6]">
             {filteredStudents.map(student => {
                 const studentClass = classes.find(c => c.id === student.classId);
+                const isActive = student.status !== 'inactive';
+                
                 return (
                   <tr 
                     key={student.id} 
-                    className="hover:bg-[#eaddcf]/20 transition-colors cursor-pointer"
+                    className="hover:bg-[#eaddcf]/20 transition-colors cursor-pointer group"
                     onClick={() => onSelectStudent(student.id)}
                   >
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         {student.avatarUrl ? (
-                            <img src={student.avatarUrl} alt={student.name} className="w-10 h-10 rounded-full object-cover border border-[#eaddcf]" />
+                            <img src={student.avatarUrl} alt={student.name} className={`w-10 h-10 rounded-full object-cover border border-[#eaddcf] ${!isActive ? 'grayscale opacity-50' : ''}`} />
                         ) : (
-                            <div className="w-10 h-10 rounded-full bg-[#eaddcf] flex items-center justify-center text-[#c48b5e] font-bold">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border border-[#eaddcf] ${isActive ? 'bg-[#eaddcf] text-[#c48b5e]' : 'bg-gray-100 text-gray-400'}`}>
                             {student.name.charAt(0)}
                             </div>
                         )}
                         <div>
-                          <p className="font-medium text-[#433422]">{student.name}</p>
+                          <p className={`font-medium transition-colors ${isActive ? 'text-[#433422]' : 'text-gray-400 line-through'}`}>{student.name}</p>
                           <p className="text-xs text-[#8c7e72] font-mono">Mat: {student.registrationNumber || 'N/A'}</p>
                         </div>
                       </div>
@@ -204,24 +219,39 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                         <div className="text-xs text-[#8c7e72]">{student.phone || '-'}</div>
                     </td>
                     <td className="p-4 text-center">
-                        <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${student.status === 'inactive' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-700'}`}>
-                         {student.status === 'inactive' ? 'Inativo' : 'Ativo'}
+                        <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${!isActive ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-700'}`}>
+                         {!isActive ? 'Inativo' : 'Ativo'}
                        </span>
                     </td>
                     <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                              <button 
                                 onClick={(e) => handleEditClick(e, student)}
                                 className="p-2 text-[#8c7e72] hover:text-[#c48b5e] hover:bg-[#eaddcf] rounded-lg transition-colors"
+                                title="Editar"
                              >
                                 <Edit2 size={16} />
                              </button>
+                             
+                             {/* Toggle Status Button */}
                              <button 
-                                onClick={(e) => handleDeleteClick(e, student.id)}
-                                className="p-2 text-[#8c7e72] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                onClick={(e) => handleToggleStatusClick(e, student)}
+                                className={`p-2 rounded-lg transition-colors ${isActive ? 'text-[#8c7e72] hover:text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
+                                title={isActive ? "Inativar" : "Reativar"}
                              >
-                                <Trash2 size={16} />
+                                {isActive ? <Archive size={16} /> : <RefreshCcw size={16} />}
                              </button>
+
+                             {/* Physical Delete (Only shown if inactive, optional safety) */}
+                             {!isActive && (
+                                <button 
+                                    onClick={(e) => handleDeleteClick(e, student.id)}
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Excluir Permanentemente"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                             )}
                         </div>
                     </td>
                   </tr>

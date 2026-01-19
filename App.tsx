@@ -231,27 +231,31 @@ export default function App() {
       } catch (e: any) { alert('Erro ao atualizar turma: ' + e.message); }
   };
 
+  // Nova função para alternar status da turma (Ativar/Inativar)
+  const handleToggleClassStatus = async (id: string, currentStatus: 'active' | 'inactive') => {
+      try {
+          const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+          const { error } = await supabase.from('classes').update({ status: newStatus }).eq('id', id);
+          if (error) throw error;
+          // Feedback sutil se necessário
+          await fetchData();
+      } catch (e: any) { alert('Erro ao alterar status da turma: ' + e.message); }
+  };
+
+  // Exclusão Física (Apenas se permitido pelo banco - Constraints)
   const handleDeleteClass = async (id: string) => {
       try {
-          const { count } = await supabase
-            .from('students')
-            .select('*', { count: 'exact', head: true })
-            .eq('class_id', id);
-
-          if (count && count > 0) {
-              const confirmSoft = window.confirm('⚠️ Esta turma possui alunos matriculados.\n\nPara manter o histórico, ela será marcada como INATIVA em vez de excluída.\n\nDeseja continuar?');
-              if (confirmSoft) {
-                  const { error } = await supabase.from('classes').update({ status: 'inactive' }).eq('id', id);
-                  if (error) throw error;
-                  alert('Turma inativada com sucesso.');
-                  await fetchData();
+          const { error } = await supabase.from('classes').delete().eq('id', id);
+          if(error) {
+              if (error.message.includes('violates foreign key constraint') || error.code === '23503') {
+                  alert('Não é possível excluir esta turma pois existem registros vinculados (Alunos). Por favor, utilize a opção "Inativar" para arquivá-la.');
+              } else {
+                  throw error;
               }
           } else {
-              const { error } = await supabase.from('classes').delete().eq('id', id);
-              if(error) throw error;
               await fetchData();
           }
-      } catch(e: any) { alert('Erro ao processar turma: ' + e.message); }
+      } catch(e: any) { alert('Erro ao excluir turma: ' + e.message); }
   };
 
   // 3. ALUNOS
@@ -292,27 +296,29 @@ export default function App() {
     } catch (e: any) { alert('Erro ao atualizar aluno: ' + e.message); }
   };
 
+  // Nova função para alternar status do aluno
+  const handleToggleStudentStatus = async (id: string, currentStatus: 'active' | 'inactive') => {
+      try {
+          const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+          const { error } = await supabase.from('students').update({ status: newStatus }).eq('id', id);
+          if (error) throw error;
+          await fetchData();
+      } catch (e: any) { alert('Erro ao alterar status do aluno: ' + e.message); }
+  };
+
   const handleDeleteStudent = async (id: string) => {
       try {
-          const { count } = await supabase
-            .from('assessments')
-            .select('*', { count: 'exact', head: true })
-            .eq('student_id', id);
-
-          if (count && count > 0) {
-              const confirmSoft = window.confirm('⚠️ Este aluno possui histórico de avaliações.\n\nPara não perder os dados, o cadastro será marcado como INATIVO.\n\nDeseja continuar?');
-              if (confirmSoft) {
-                  const { error } = await supabase.from('students').update({ status: 'inactive' }).eq('id', id);
-                  if (error) throw error;
-                  alert('Aluno inativado com sucesso.');
-                  await fetchData();
-              }
+          const { error } = await supabase.from('students').delete().eq('id', id);
+          if(error) {
+             if (error.message.includes('violates foreign key constraint') || error.code === '23503') {
+                 alert('Não é possível excluir este aluno pois existem avaliações vinculadas. Por favor, utilize a opção "Inativar".');
+             } else {
+                 throw error;
+             }
           } else {
-              const { error } = await supabase.from('students').delete().eq('id', id);
-              if(error) throw error;
               await fetchData();
           }
-      } catch(e: any) { alert('Erro ao processar aluno: ' + e.message); }
+      } catch(e: any) { alert('Erro ao excluir aluno: ' + e.message); }
   };
 
   // 4. HABILIDADES
@@ -472,15 +478,26 @@ export default function App() {
           onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} 
           onAddClass={handleAddClass} 
           onUpdateClass={handleUpdateClass} 
-          onDeleteClass={handleDeleteClass} 
+          onDeleteClass={handleDeleteClass}
+          onToggleStatus={handleToggleClassStatus} // Passando função de toggle
           onAddStudent={handleAddStudent} 
           onUpdateStudent={handleUpdateStudent} 
-          onDeleteStudent={handleDeleteStudent} 
+          onDeleteStudent={handleDeleteStudent}
+          onToggleStudentStatus={handleToggleStudentStatus} // Passando função de toggle
           onAddLog={handleAddLog}
           onDeleteLog={handleDeleteLog}
         />}
 
-        {currentPage === 'students' && <StudentManager students={students} classes={classes} onAddStudent={handleAddStudent} onUpdateStudent={handleUpdateStudent} onDeleteStudent={handleDeleteStudent} onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} />}
+        {currentPage === 'students' && <StudentManager 
+          students={students} 
+          classes={classes} 
+          onAddStudent={handleAddStudent} 
+          onUpdateStudent={handleUpdateStudent} 
+          onDeleteStudent={handleDeleteStudent} 
+          onToggleStatus={handleToggleStudentStatus} // Passando função de toggle
+          onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} 
+        />}
+        
         {currentPage === 'assessments' && <AssessmentManager assessments={assessments} students={students} classes={classes} skills={skills} onAddAssessment={handleAddAssessment} onDeleteAssessment={handleDeleteAssessment} />}
         {currentPage === 'remediation' && <RemediationList assessments={assessments} students={students} skills={skills} classes={classes} users={users} logs={logs} onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} onAddClass={handleAddClass} onDeleteClass={handleDeleteClass} onUpdateStudent={handleUpdateStudent} onAddLog={handleAddLog} onDeleteLog={handleDeleteLog} />}
         {currentPage === 'skills' && <SkillManager skills={skills} classes={classes} onAddSkill={handleAddSkill} onUpdateSkill={handleUpdateSkill} onDeleteSkill={handleDeleteSkill} onUpdateClass={handleUpdateClass} />}

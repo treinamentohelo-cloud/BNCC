@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Users, GraduationCap, Plus, Camera, Calendar, Phone, User as UserIcon, Edit2, Trash2, ArrowLeft, X, Target, BookOpen, Save, CheckSquare, Square, Clock } from 'lucide-react';
+import { ChevronRight, Users, GraduationCap, Plus, Camera, Calendar, Phone, User as UserIcon, Edit2, Trash2, ArrowLeft, X, Target, BookOpen, Save, CheckSquare, Square, Clock, Archive, RefreshCcw } from 'lucide-react';
 import { ClassGroup, Student, User, ClassDailyLog } from '../types';
 
 interface ClassListProps {
@@ -13,9 +13,11 @@ interface ClassListProps {
   onAddClass: (c: ClassGroup) => void;
   onUpdateClass: (c: ClassGroup) => void;
   onDeleteClass: (id: string) => void;
+  onToggleStatus: (id: string, currentStatus: 'active' | 'inactive') => void;
   onAddStudent: (s: Student) => void;
   onUpdateStudent: (s: Student) => void;
   onDeleteStudent: (id: string) => void;
+  onToggleStudentStatus: (id: string, currentStatus: 'active' | 'inactive') => void;
   onAddLog?: (l: ClassDailyLog) => void;
   onDeleteLog?: (id: string) => void;
 }
@@ -31,9 +33,11 @@ export const ClassList: React.FC<ClassListProps> = ({
   onAddClass,
   onUpdateClass,
   onDeleteClass,
+  onToggleStatus,
   onAddStudent,
   onUpdateStudent,
   onDeleteStudent,
+  onToggleStudentStatus,
   onAddLog,
   onDeleteLog
 }) => {
@@ -91,12 +95,35 @@ export const ClassList: React.FC<ClassListProps> = ({
       setIsClassModalOpen(true);
   };
 
+  const handleToggleStatusClick = (e: React.MouseEvent, cls: ClassGroup) => {
+      e.stopPropagation();
+      const action = cls.status === 'active' ? 'INATIVAR' : 'REATIVAR';
+      const confirmMsg = cls.status === 'active' 
+         ? `Deseja ARQUIVAR a turma "${cls.name}"?\n\nEla ficará oculta nas listagens principais, mas o histórico será preservado.`
+         : `Deseja REATIVAR a turma "${cls.name}"?`;
+      
+      if(window.confirm(confirmMsg)) {
+          onToggleStatus(cls.id, cls.status || 'active');
+      }
+  };
+
   const handleDeleteClassClick = (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      if(window.confirm('Tem certeza que deseja excluir esta turma?')) {
+      if(window.confirm('ATENÇÃO: Deseja excluir PERMANENTEMENTE esta turma vazia? Esta ação não pode ser desfeita.')) {
           onDeleteClass(id);
       }
   };
+
+  const handleToggleStudentClick = (e: React.MouseEvent, student: Student) => {
+      e.stopPropagation();
+      const confirmMsg = student.status === 'active' 
+        ? `Deseja INATIVAR o aluno ${student.name}?\n\nEle não aparecerá nas chamadas, mas o histórico será mantido.`
+        : `Deseja REATIVAR o aluno ${student.name}?`;
+
+      if(window.confirm(confirmMsg)) {
+        onToggleStudentStatus(student.id, student.status || 'active');
+      }
+  }
 
   const generateId = () => {
     return typeof crypto !== 'undefined' && crypto.randomUUID 
@@ -184,7 +211,6 @@ export const ClassList: React.FC<ClassListProps> = ({
   // Helper para formatar data evitando problemas de timezone (UTC para Local)
   const formatDateDisplay = (dateString: string) => {
       if (!dateString) return '-';
-      // Adiciona hora fixa para evitar que o Date() interprete como UTC meia-noite e volte um dia no fuso brasileiro
       const date = new Date(dateString + 'T12:00:00');
       return date.toLocaleDateString('pt-BR', { 
         day: '2-digit', 
@@ -245,24 +271,29 @@ export const ClassList: React.FC<ClassListProps> = ({
             const teacherName = users.find(u => u.id === cls.teacherId)?.name || 'Sem professor';
             const isRemediation = cls.isRemediation;
             const focusCount = cls.focusSkills?.length || 0;
+            const isActive = cls.status !== 'inactive';
             
             return (
               <div 
                 key={cls.id}
                 onClick={() => onSelectClass(cls.id)}
-                className="bg-white rounded-xl shadow-sm border border-[#eaddcf] border-t-4 border-t-[#c48b5e] p-6 cursor-pointer hover:shadow-lg transition-all group relative overflow-hidden"
+                className={`rounded-xl shadow-sm border border-[#eaddcf] border-t-4 p-6 cursor-pointer hover:shadow-lg transition-all group relative overflow-hidden
+                    ${isActive ? 'bg-white border-t-[#c48b5e]' : 'bg-gray-50 border-t-gray-400 opacity-80'}`}
               >
-                {cls.status === 'inactive' && (
-                  <div className="absolute top-2 right-2 bg-gray-100 text-gray-500 text-[10px] px-2 py-1 rounded font-medium uppercase tracking-wider">Arquivada</div>
+                {/* Status Badge */}
+                {!isActive && (
+                  <div className="absolute top-2 right-2 bg-gray-200 text-gray-600 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Archive size={10} /> Inativa
+                  </div>
                 )}
-                {isRemediation && (
+                {isRemediation && isActive && (
                    <div className="absolute top-2 right-2 bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider shadow-sm flex items-center gap-1">
                       Reforço
                    </div>
                 )}
                 
                 <div className="flex items-start justify-between mb-4 mt-2">
-                  <div className="p-3 rounded-xl transition-colors bg-[#eaddcf] text-[#c48b5e]">
+                  <div className={`p-3 rounded-xl transition-colors ${isActive ? 'bg-[#eaddcf] text-[#c48b5e]' : 'bg-gray-200 text-gray-500'}`}>
                     <GraduationCap size={28} />
                   </div>
                   <div className="flex flex-col items-end">
@@ -273,7 +304,7 @@ export const ClassList: React.FC<ClassListProps> = ({
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold text-[#433422] mb-1 group-hover:text-[#c48b5e] transition-colors">{cls.name}</h3>
+                <h3 className={`text-xl font-bold mb-1 transition-colors ${isActive ? 'text-[#433422] group-hover:text-[#c48b5e]' : 'text-gray-600'}`}>{cls.name}</h3>
                 <p className="text-[#8c7e72] text-sm mb-4 line-clamp-1">{cls.grade}</p>
                 
                 <div className="flex items-center gap-2 mb-2 bg-[#fcf9f6] p-2 rounded-lg">
@@ -284,7 +315,7 @@ export const ClassList: React.FC<ClassListProps> = ({
                 </div>
 
                 {/* Focus Skills Badge */}
-                {focusCount > 0 && (
+                {focusCount > 0 && isActive && (
                    <div className="mb-4 inline-flex items-center gap-1.5 text-xs text-[#a0704a] bg-[#eaddcf]/30 px-2 py-1 rounded border border-[#eaddcf]/50">
                       <Target size={12} />
                       <strong>{focusCount}</strong> Habilidades Foco
@@ -293,16 +324,29 @@ export const ClassList: React.FC<ClassListProps> = ({
                 
                 <div className={`flex items-center justify-between border-t border-[#eaddcf] pt-3 ${focusCount > 0 ? '' : 'mt-4'}`}>
                   <div className="flex items-center text-[#8c7e72] text-sm font-medium">
-                    <Users size={16} className="mr-2 text-[#c48b5e]" />
+                    <Users size={16} className={`mr-2 ${isActive ? 'text-[#c48b5e]' : 'text-gray-400'}`} />
                     {studentCount} Alunos
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => handleEditClassClick(e, cls)} className="p-2 text-[#8c7e72] hover:text-[#c48b5e] hover:bg-[#eaddcf] rounded-full transition-colors">
+                      <button onClick={(e) => handleEditClassClick(e, cls)} className="p-2 text-[#8c7e72] hover:text-[#c48b5e] hover:bg-[#eaddcf] rounded-full transition-colors" title="Editar">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={(e) => handleDeleteClassClick(e, cls.id)} className="p-2 text-[#8c7e72] hover:text-red-600 hover:bg-red-50 rounded-full transition-colors">
-                        <Trash2 size={16} />
+                      
+                      {/* Botão de Toggle Status (Arquivar ou Reativar) */}
+                      <button 
+                         onClick={(e) => handleToggleStatusClick(e, cls)} 
+                         className={`p-2 rounded-full transition-colors ${isActive ? 'text-orange-400 hover:text-orange-600 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
+                         title={isActive ? "Arquivar/Inativar" : "Reativar Turma"}
+                      >
+                         {isActive ? <Archive size={16} /> : <RefreshCcw size={16} />}
                       </button>
+
+                      {/* Botão de Excluir Física (Apenas se inativa e vazia) */}
+                      {!isActive && studentCount === 0 && (
+                          <button onClick={(e) => handleDeleteClassClick(e, cls.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Excluir Permanentemente">
+                            <Trash2 size={16} />
+                          </button>
+                      )}
                   </div>
                 </div>
               </div>
@@ -359,46 +403,60 @@ export const ClassList: React.FC<ClassListProps> = ({
                     </thead>
                     <tbody className="divide-y divide-[#fcf9f6]">
                     {filteredStudents.length > 0 ? (
-                        filteredStudents.map((student) => (
-                        <tr 
-                            key={student.id} 
-                            className="hover:bg-[#eaddcf]/20 transition-colors cursor-pointer group"
-                            onClick={() => onSelectStudent(student.id)}
-                        >
-                            <td className="p-4">
-                            <div className="flex items-center gap-3">
-                                {student.avatarUrl ? (
-                                <img src={student.avatarUrl} alt={student.name} className="w-10 h-10 rounded-full object-cover border border-[#eaddcf]" />
-                                ) : (
-                                <div className="w-10 h-10 rounded-full bg-[#eaddcf] flex items-center justify-center text-[#c48b5e] font-bold border border-[#eaddcf]">
-                                    {student.name.charAt(0)}
-                                </div>
-                                )}
-                                <div>
-                                <p className="font-medium text-[#433422] group-hover:text-[#c48b5e] transition-colors">{student.name}</p>
-                                <p className="text-xs text-[#8c7e72]">{new Date().getFullYear() - new Date(student.birthDate || '').getFullYear()} anos</p>
-                                </div>
-                            </div>
-                            </td>
-                            <td className="p-4 text-[#8c7e72] text-sm font-mono">{student.registrationNumber || '-'}</td>
-                            <td className="p-4 text-[#8c7e72] text-sm">
-                            <div>{student.parentName || '-'}</div>
-                            <div className="text-xs text-[#8c7e72] flex items-center gap-1">
-                                <Phone size={10} /> {student.phone}
-                            </div>
-                            </td>
-                            <td className="p-4 text-center">
-                            <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide border ${student.status === 'inactive' ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
-                                {student.status === 'inactive' ? 'Inativo' : 'Ativo'}
-                            </span>
-                            </td>
-                            <td className="p-4 text-right">
-                            <div className="w-8 h-8 rounded-full bg-[#fcf9f6] flex items-center justify-center text-[#d1c5b8] group-hover:bg-[#eaddcf] group-hover:text-[#c48b5e] transition-all ml-auto">
-                                <ChevronRight size={18} />
-                            </div>
-                            </td>
-                        </tr>
-                        ))
+                        filteredStudents.map((student) => {
+                            const isActiveStudent = student.status !== 'inactive';
+                            return (
+                                <tr 
+                                    key={student.id} 
+                                    className="hover:bg-[#eaddcf]/20 transition-colors cursor-pointer group"
+                                    onClick={() => onSelectStudent(student.id)}
+                                >
+                                    <td className="p-4">
+                                    <div className="flex items-center gap-3">
+                                        {student.avatarUrl ? (
+                                        <img src={student.avatarUrl} alt={student.name} className={`w-10 h-10 rounded-full object-cover border border-[#eaddcf] ${!isActiveStudent ? 'grayscale opacity-50' : ''}`} />
+                                        ) : (
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border border-[#eaddcf] ${isActiveStudent ? 'bg-[#eaddcf] text-[#c48b5e]' : 'bg-gray-100 text-gray-400'}`}>
+                                            {student.name.charAt(0)}
+                                        </div>
+                                        )}
+                                        <div>
+                                        <p className={`font-medium transition-colors ${isActiveStudent ? 'text-[#433422] group-hover:text-[#c48b5e]' : 'text-gray-400 line-through'}`}>{student.name}</p>
+                                        <p className="text-xs text-[#8c7e72]">{new Date().getFullYear() - new Date(student.birthDate || '').getFullYear()} anos</p>
+                                        </div>
+                                    </div>
+                                    </td>
+                                    <td className="p-4 text-[#8c7e72] text-sm font-mono">{student.registrationNumber || '-'}</td>
+                                    <td className="p-4 text-[#8c7e72] text-sm">
+                                    <div>{student.parentName || '-'}</div>
+                                    <div className="text-xs text-[#8c7e72] flex items-center gap-1">
+                                        <Phone size={10} /> {student.phone}
+                                    </div>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                    <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide border ${!isActiveStudent ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+                                        {!isActiveStudent ? 'Inativo' : 'Ativo'}
+                                    </span>
+                                    </td>
+                                    <td className="p-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            {/* Botão de Toggle Aluno */}
+                                            <button 
+                                                onClick={(e) => handleToggleStudentClick(e, student)}
+                                                className={`p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${isActiveStudent ? 'text-orange-400 hover:bg-orange-50' : 'text-green-500 hover:bg-green-50'}`}
+                                                title={isActiveStudent ? "Inativar Aluno" : "Reativar Aluno"}
+                                            >
+                                                {isActiveStudent ? <Archive size={18} /> : <RefreshCcw size={18} />}
+                                            </button>
+                                            
+                                            <div className="w-8 h-8 rounded-full bg-[#fcf9f6] flex items-center justify-center text-[#d1c5b8] group-hover:bg-[#eaddcf] group-hover:text-[#c48b5e] transition-all">
+                                                <ChevronRight size={18} />
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })
                     ) : (
                         <tr>
                         <td colSpan={5} className="p-12 text-center text-[#8c7e72] flex flex-col items-center">
@@ -449,9 +507,9 @@ export const ClassList: React.FC<ClassListProps> = ({
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-[#c48b5e] mb-2 ml-1">Chamada</label>
+                                <label className="block text-sm font-semibold text-[#c48b5e] mb-2 ml-1">Chamada (Alunos Ativos)</label>
                                 <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-xl p-2 bg-[#fcf9f6] space-y-1">
-                                    {filteredStudents.map(s => (
+                                    {filteredStudents.filter(s => s.status !== 'inactive').map(s => (
                                         <div 
                                             key={s.id} 
                                             onClick={() => handleToggleAttendance(s.id)}
@@ -461,7 +519,7 @@ export const ClassList: React.FC<ClassListProps> = ({
                                             <span className={`text-sm ${attendance[s.id] ? 'font-bold text-[#433422]' : 'text-gray-500'}`}>{s.name}</span>
                                         </div>
                                     ))}
-                                    {filteredStudents.length === 0 && <p className="text-xs text-center text-gray-400 py-2">Sem alunos.</p>}
+                                    {filteredStudents.filter(s => s.status !== 'inactive').length === 0 && <p className="text-xs text-center text-gray-400 py-2">Sem alunos ativos.</p>}
                                 </div>
                             </div>
                             <button type="submit" className="w-full bg-[#c48b5e] text-white py-3 rounded-xl font-bold hover:bg-[#a0704a] shadow-md flex items-center justify-center gap-2">
@@ -486,7 +544,7 @@ export const ClassList: React.FC<ClassListProps> = ({
                                                     {formatDateDisplay(log.date)}
                                                 </span>
                                                 <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                                                    Presença: <strong>{presentCount}</strong>/{filteredStudents.length}
+                                                    Presença: <strong>{presentCount}</strong>
                                                 </span>
                                             </div>
                                             {onDeleteLog && (
