@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ArrowRight, ClipboardList, PlusCircle, X, School, GraduationCap, UserPlus, BookOpen, Calendar, CheckSquare, Square, Trash2, Clock, Users, User as UserIcon, Save, CheckCircle2, Printer, CheckCircle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ClipboardList, PlusCircle, X, School, GraduationCap, UserPlus, BookOpen, Calendar, CheckSquare, Square, Trash2, Clock, Users, User as UserIcon, Save, CheckCircle2, Printer, CheckCircle, Filter, RotateCcw } from 'lucide-react';
 import { Assessment, AssessmentStatus, ClassGroup, Skill, Student, User, ClassDailyLog } from '../types';
 
 interface RemediationListProps {
@@ -50,6 +50,11 @@ export const RemediationList: React.FC<RemediationListProps> = ({
   const [dailyDate, setDailyDate] = useState(new Date().toISOString().split('T')[0]);
   const [dailyContent, setDailyContent] = useState('');
   const [dailyAttendance, setDailyAttendance] = useState<Record<string, boolean>>({});
+
+  // Report Filter State
+  const [reportFilterClass, setReportFilterClass] = useState('all');
+  const [reportStartDate, setReportStartDate] = useState('');
+  const [reportEndDate, setReportEndDate] = useState('');
 
   const canDelete = currentUser?.role !== 'professor';
 
@@ -173,6 +178,12 @@ export const RemediationList: React.FC<RemediationListProps> = ({
 
   const handlePrint = () => {
       window.print();
+  };
+
+  const handleResetFilters = () => {
+      setReportFilterClass('all');
+      setReportStartDate('');
+      setReportEndDate('');
   };
 
   // --- Render Functions ---
@@ -472,22 +483,87 @@ export const RemediationList: React.FC<RemediationListProps> = ({
   };
 
   const renderReport = () => {
-      // Students who are currently in remediation OR have a exit date
-      const reportStudents = students.filter(s => {
+      // Logic for filtering students in report
+      const filteredReportStudents = students.filter(s => {
           const cls = classes.find(c => c.id === s.classId);
-          return cls?.isRemediation || s.remediationEntryDate;
+          // Base Condition: Is in remediation context (either in a class or has entry date)
+          const isRemediationContext = cls?.isRemediation || s.remediationEntryDate;
+          
+          if (!isRemediationContext) return false;
+
+          // Filter by Class
+          if (reportFilterClass !== 'all' && s.classId !== reportFilterClass) return false;
+
+          // Filter by Date (Entry Date)
+          if (s.remediationEntryDate) {
+              const entryDate = s.remediationEntryDate.split('T')[0];
+              if (reportStartDate && entryDate < reportStartDate) return false;
+              if (reportEndDate && entryDate > reportEndDate) return false;
+          } else if (reportStartDate || reportEndDate) {
+              // If filtering by date and student has no entry date, exclude them
+              return false;
+          }
+
+          return true;
       });
 
       return (
           <>
-            <div className="flex justify-end mb-4 print:hidden">
+            <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-6 gap-4 print:hidden">
+                {/* Filter Toolbar */}
+                <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm w-full md:w-auto">
+                    <div className="flex items-center gap-2 text-gray-500 text-sm font-medium border-r border-gray-200 pr-3 mr-1">
+                        <Filter size={16} /> Filtros:
+                    </div>
+                    
+                    <select 
+                        value={reportFilterClass}
+                        onChange={(e) => setReportFilterClass(e.target.value)}
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-[#000039] focus:outline-none focus:border-[#10898b] bg-gray-50"
+                    >
+                        <option value="all">Todas as Turmas</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">De:</span>
+                        <input 
+                            type="date" 
+                            value={reportStartDate}
+                            onChange={(e) => setReportStartDate(e.target.value)}
+                            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-[#000039] focus:outline-none focus:border-[#10898b] bg-gray-50"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">Até:</span>
+                        <input 
+                            type="date" 
+                            value={reportEndDate}
+                            onChange={(e) => setReportEndDate(e.target.value)}
+                            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-[#000039] focus:outline-none focus:border-[#10898b] bg-gray-50"
+                        />
+                    </div>
+
+                    {(reportFilterClass !== 'all' || reportStartDate || reportEndDate) && (
+                        <button 
+                            onClick={handleResetFilters}
+                            className="ml-auto p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Limpar Filtros"
+                        >
+                            <RotateCcw size={16} />
+                        </button>
+                    )}
+                </div>
+
                 <button 
                     onClick={handlePrint}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#10898b] text-white rounded-xl hover:bg-[#0d7274] font-bold transition-colors shadow-md shadow-[#10898b]/20"
                 >
-                    <Printer size={18} /> Imprimir Histórico
+                    <Printer size={18} /> Imprimir
                 </button>
             </div>
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <table className="w-full text-left">
                     <thead>
@@ -500,7 +576,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {reportStudents.map(s => {
+                        {filteredReportStudents.map(s => {
                             const entry = s.remediationEntryDate ? new Date(s.remediationEntryDate) : null;
                             const exit = s.remediationExitDate ? new Date(s.remediationExitDate) : null;
                             const cls = classes.find(c => c.id === s.classId);
@@ -531,8 +607,8 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                                 </tr>
                             );
                         })}
-                        {reportStudents.length === 0 && (
-                            <tr><td colSpan={5} className="p-8 text-center text-gray-400">Sem dados de relatório.</td></tr>
+                        {filteredReportStudents.length === 0 && (
+                            <tr><td colSpan={5} className="p-8 text-center text-gray-400">Nenhum registro encontrado com os filtros selecionados.</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -565,6 +641,14 @@ export const RemediationList: React.FC<RemediationListProps> = ({
         <div className="hidden print:block mb-8 border-b pb-4">
              <h1 className="text-2xl font-bold text-gray-900">Relatório de Reforço Escolar</h1>
              <p className="text-gray-500">Data de emissão: {new Date().toLocaleDateString()}</p>
+             {(reportFilterClass !== 'all' || reportStartDate || reportEndDate) && (
+                 <div className="mt-2 text-xs text-gray-400 border p-2 rounded inline-block">
+                     Filtros: 
+                     {reportFilterClass !== 'all' && ` Turma: ${classes.find(c => c.id === reportFilterClass)?.name} |`}
+                     {reportStartDate && ` De: ${new Date(reportStartDate).toLocaleDateString()} |`}
+                     {reportEndDate && ` Até: ${new Date(reportEndDate).toLocaleDateString()}`}
+                 </div>
+             )}
         </div>
 
         {/* Navigation Tabs (Hidden on print) */}
