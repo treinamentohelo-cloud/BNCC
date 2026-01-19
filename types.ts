@@ -1,7 +1,7 @@
-
 export enum AssessmentStatus {
   NAO_ATINGIU = 'nao_atingiu',
   EM_DESENVOLVIMENTO = 'em_desenvolvimento',
+  ATINGIU = 'atingiu',
   SUPEROU = 'superou'
 }
 
@@ -44,6 +44,7 @@ export interface Assessment {
   skillId: string;
   date: string;
   status: AssessmentStatus;
+  score?: number;
   notes?: string;
 }
 

@@ -241,8 +241,12 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
             );
         })}
         {filteredSkills.length === 0 && (
-          <div className="col-span-full p-8 text-center text-gray-500 bg-white rounded-xl border border-dashed border-gray-200">
-             Nenhuma habilidade encontrada para sua busca.
+          <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-xl border-2 border-dashed border-gray-200 hover:border-[#bfe4cd] transition-colors">
+              <div className="mx-auto w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                  <BookOpen className="text-gray-300" size={24} />
+              </div>
+              <h3 className="text-lg font-medium text-gray-600 mb-1">Nenhuma habilidade encontrada</h3>
+              <p className="text-sm text-gray-400">Verifique os filtros ou cadastre uma nova habilidade.</p>
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, AlertCircle, ArrowRight, BookOpenCheck, ShieldCheck } from 'lucide-react';
+import { GraduationCap, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
@@ -29,23 +29,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#000039] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Abstract Shapes - Brand Colors */}
+    <div className="min-h-screen bg-[#f3efe9] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Shapes */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[#10898b] rounded-full mix-blend-screen filter blur-[150px] opacity-20 animate-pulse"></div>
-          <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#0f5c5e] rounded-full mix-blend-screen filter blur-[120px] opacity-30"></div>
+          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#eaddcf] rounded-full mix-blend-multiply filter blur-[80px] opacity-60"></div>
+          <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#d9c4b1] rounded-full mix-blend-multiply filter blur-[80px] opacity-40"></div>
       </div>
 
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md p-8 relative z-10 animate-in fade-in zoom-in duration-300 border border-white/10">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-10 relative z-10 animate-in fade-in zoom-in duration-300 border border-[#eaddcf]">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-5 bg-[#10898b] rounded-2xl shadow-lg shadow-[#10898b]/30 mb-6 transform hover:scale-105 transition-transform duration-300">
+          <div className="inline-flex items-center justify-center p-5 bg-[#c48b5e] rounded-2xl shadow-lg shadow-[#c48b5e]/20 mb-6 transform hover:scale-105 transition-transform duration-300">
             <GraduationCap className="text-white" size={48} strokeWidth={1.5} />
           </div>
-          <h1 className="text-3xl font-extrabold text-[#000039] tracking-tight">EDUCAÇÃO <span className="text-[#10898b]">5.0</span></h1>
-          <p className="text-gray-500 mt-2 font-medium text-sm tracking-wide uppercase flex items-center justify-center gap-2">
-            <span className="w-8 h-[1px] bg-gray-300"></span>
+          <h1 className="text-3xl font-extrabold text-[#433422] tracking-tight">EDUCAÇÃO <span className="text-[#c48b5e]">5.0</span></h1>
+          <p className="text-[#8c7e72] mt-2 font-medium text-sm tracking-wide uppercase flex items-center justify-center gap-2">
+            <span className="w-8 h-[1px] bg-[#eaddcf]"></span>
             Gestão Inteligente
-            <span className="w-8 h-[1px] bg-gray-300"></span>
+            <span className="w-8 h-[1px] bg-[#eaddcf]"></span>
           </p>
         </div>
         
@@ -58,24 +58,24 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-[#10898b] uppercase tracking-wider ml-1">E-mail Corporativo</label>
+            <label className="block text-xs font-bold text-[#c48b5e] uppercase tracking-wider ml-1">E-mail Corporativo</label>
             <input 
               required
               type="email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#10898b] focus:bg-white focus:border-transparent outline-none transition-all text-[#000039] placeholder-gray-400 font-medium"
+              className="w-full px-4 py-3.5 bg-[#fcf9f6] border border-[#eaddcf] rounded-xl focus:ring-2 focus:ring-[#c48b5e] focus:bg-white focus:border-transparent outline-none transition-all text-[#433422] placeholder-[#d1c5b8] font-medium"
               placeholder="seu@escola.com"
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-[#10898b] uppercase tracking-wider ml-1">Senha de Acesso</label>
+            <label className="block text-xs font-bold text-[#c48b5e] uppercase tracking-wider ml-1">Senha de Acesso</label>
             <input 
               required
               type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#10898b] focus:bg-white focus:border-transparent outline-none transition-all text-[#000039] placeholder-gray-400 font-medium"
+              className="w-full px-4 py-3.5 bg-[#fcf9f6] border border-[#eaddcf] rounded-xl focus:ring-2 focus:ring-[#c48b5e] focus:bg-white focus:border-transparent outline-none transition-all text-[#433422] placeholder-[#d1c5b8] font-medium"
               placeholder="••••••••"
             />
           </div>
@@ -83,7 +83,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <button 
                 type="submit" 
                 disabled={isLoading}
-                className={`w-full bg-[#000039] hover:bg-[#10898b] text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 ${isLoading ? 'opacity-80 cursor-wait' : ''}`}
+                className={`w-full bg-[#c48b5e] hover:bg-[#a0704a] text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-[#c48b5e]/20 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 ${isLoading ? 'opacity-80 cursor-wait' : ''}`}
             >
                 {isLoading ? 'Autenticando...' : (
                     <>Acessar Plataforma <ArrowRight size={18} /></>
@@ -92,14 +92,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         </form>
         
-        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400 font-medium flex items-center justify-center gap-1.5">
-                <ShieldCheck size={14} className="text-[#10898b]" /> Ambiente Seguro e Monitorado
+        <div className="mt-8 pt-6 border-t border-[#eaddcf] text-center">
+            <p className="text-xs text-[#8c7e72] font-medium flex items-center justify-center gap-1.5">
+                <ShieldCheck size={14} className="text-[#c48b5e]" /> Ambiente Seguro e Monitorado
             </p>
         </div>
       </div>
       
-      <div className="absolute bottom-4 text-white/20 text-xs font-light">
+      <div className="absolute bottom-4 text-[#8c7e72] text-xs font-light">
          © {new Date().getFullYear()} Educação 5.0 - Tecnologia Educacional
       </div>
     </div>

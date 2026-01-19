@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Shield, User as UserIcon, Key, Eye, EyeOff, AlertCircle, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Shield, User as UserIcon, Key, Eye, EyeOff, AlertCircle, X, Users } from 'lucide-react';
 import { User, UserRole } from '../types';
 
 interface UserManagerProps {
@@ -242,7 +242,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filteredUsers.map(user => (
-              <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+              <tr key={user.id} className="hover:bg-[#bfe4cd]/20 transition-colors">
                 <td className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#bfe4cd] flex items-center justify-center text-[#10898b]">
@@ -286,8 +286,12 @@ export const UserManager: React.FC<UserManagerProps> = ({
           </tbody>
         </table>
         {filteredUsers.length === 0 && (
-          <div className="p-8 text-center text-gray-500 bg-gray-50">
-             Nenhum usuário encontrado com os filtros atuais.
+          <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+             <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                 <Users className="text-gray-300" size={24} />
+             </div>
+             <h3 className="text-lg font-medium text-gray-600 mb-1">Nenhum usuário encontrado</h3>
+             <p className="text-sm text-gray-400">Tente ajustar a busca ou cadastre um novo membro.</p>
           </div>
         )}
       </div>

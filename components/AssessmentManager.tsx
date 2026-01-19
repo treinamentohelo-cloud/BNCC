@@ -80,6 +80,12 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
             <Check size={12} /> Superou
           </span>
         );
+      case AssessmentStatus.ATINGIU:
+        return (
+            <span className="flex items-center gap-1 bg-cyan-100 text-cyan-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+            <Check size={12} /> Atingiu
+            </span>
+        );
       case AssessmentStatus.EM_DESENVOLVIMENTO:
         return (
           <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
@@ -105,7 +111,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-[#10898b] hover:bg-[#0d7274] text-white px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-[#10898b]/20 transition-all transform hover:-translate-y-0.5 font-medium"
+          className="bg-[#c48b5e] hover:bg-[#a0704a] text-white px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-[#c48b5e]/20 transition-all transform hover:-translate-y-0.5 font-medium"
         >
           <Plus size={18} /> Nova Avaliação
         </button>
@@ -119,7 +125,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                 placeholder="Buscar por aluno ou código..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#10898b] outline-none text-[#000039]"
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none text-[#000039]"
              />
          </div>
          <div className="w-full md:w-64 relative">
@@ -127,7 +133,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
              <select
                 value={filterClass}
                 onChange={(e) => setFilterClass(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#10898b] outline-none appearance-none bg-white text-[#000039]"
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-[#000039]"
              >
                  <option value="all">Todas as Turmas</option>
                  {classes.map(c => (
@@ -157,7 +163,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                     {/* Body: Student & Skill Info */}
                     <div className="mb-4">
                         <div className="flex items-center gap-3 mb-3">
-                             <div className="w-10 h-10 rounded-full bg-[#bfe4cd] flex items-center justify-center text-[#10898b] font-bold shrink-0">
+                             <div className="w-10 h-10 rounded-full bg-[#eaddcf] flex items-center justify-center text-[#c48b5e] font-bold shrink-0">
                                  {student?.name.charAt(0)}
                              </div>
                              <div>
@@ -170,8 +176,8 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 
                         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                              <div className="flex items-center gap-2 mb-1">
-                                 <BookOpen size={14} className="text-[#10898b]" />
-                                 <span className="font-mono text-xs font-bold text-[#10898b] bg-[#bfe4cd]/30 px-1.5 rounded">{skill?.code}</span>
+                                 <BookOpen size={14} className="text-[#c48b5e]" />
+                                 <span className="font-mono text-xs font-bold text-[#c48b5e] bg-[#eaddcf]/30 px-1.5 rounded">{skill?.code}</span>
                              </div>
                              <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed" title={skill?.description}>
                                  {skill?.description}
@@ -206,10 +212,10 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
       {/* MODAL DE AVALIAÇÃO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#bfe4cd]">
-             <div className="px-6 py-5 bg-gradient-to-r from-[#10898b] to-[#0d7274] flex justify-between items-center">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#eaddcf]">
+             <div className="px-6 py-5 bg-gradient-to-r from-[#c48b5e] to-[#a0704a] flex justify-between items-center">
                 <h3 className="font-bold text-xl text-white flex items-center gap-2">
-                   <ClipboardCheck className="text-[#bfe4cd]" />
+                   <ClipboardCheck className="text-[#eaddcf]" />
                    Registrar Avaliação
                 </h3>
                 <button onClick={() => setIsModalOpen(false)} className="text-white/80 hover:text-white transition-colors">
@@ -219,10 +225,10 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
              <form onSubmit={handleSubmit} className="p-8 space-y-5">
                 
                 <div>
-                    <label className="block text-sm font-semibold text-[#10898b] mb-1.5 ml-1">1. Selecione a Turma</label>
+                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">1. Selecione a Turma</label>
                     <select
                         required
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
                         value={formClassId}
                         onChange={e => { setFormClassId(e.target.value); setFormStudentId(''); }}
                     >
@@ -234,11 +240,11 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-[#10898b] mb-1.5 ml-1">2. Selecione o Aluno</label>
+                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">2. Selecione o Aluno</label>
                     <select
                         required
                         disabled={!formClassId}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white disabled:bg-gray-100 disabled:text-gray-400 text-[#000039] transition-all"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white disabled:bg-gray-100 disabled:text-gray-400 text-[#000039] transition-all"
                         value={formStudentId}
                         onChange={e => setFormStudentId(e.target.value)}
                     >
@@ -250,10 +256,10 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-[#10898b] mb-1.5 ml-1">3. Selecione a Habilidade</label>
+                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">3. Selecione a Habilidade</label>
                     <select
                         required
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
                         value={formSkillId}
                         onChange={e => setFormSkillId(e.target.value)}
                     >
@@ -263,26 +269,27 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                         ))}
                     </select>
                     {formSkillId && (
-                        <p className="text-xs bg-[#bfe4cd]/30 p-3 rounded-lg mt-2 text-[#000039] border border-[#bfe4cd]">
+                        <p className="text-xs bg-[#eaddcf]/30 p-3 rounded-lg mt-2 text-[#000039] border border-[#eaddcf]">
                             {skills.find(s => s.id === formSkillId)?.description}
                         </p>
                     )}
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-[#10898b] mb-2 ml-1">4. Resultado</label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <label className="block text-sm font-semibold text-[#c48b5e] mb-2 ml-1">4. Resultado</label>
+                    <div className="grid grid-cols-4 gap-2">
                         {[
                         { val: AssessmentStatus.NAO_ATINGIU, label: 'Não Atingiu', color: 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' },
                         { val: AssessmentStatus.EM_DESENVOLVIMENTO, label: 'Em Desenv.', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
+                        { val: AssessmentStatus.ATINGIU, label: 'Atingiu', color: 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100' },
                         { val: AssessmentStatus.SUPEROU, label: 'Superou', color: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' },
                         ].map((opt) => (
                         <button
                             key={opt.val}
                             type="button"
                             onClick={() => setFormStatus(opt.val)}
-                            className={`border px-2 py-3 rounded-xl text-xs font-bold transition-all shadow-sm ${
-                            formStatus === opt.val ? 'ring-2 ring-[#10898b] ring-offset-1 scale-105 ' + opt.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                            className={`border px-1 py-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all shadow-sm ${
+                            formStatus === opt.val ? 'ring-2 ring-[#c48b5e] ring-offset-1 scale-105 ' + opt.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                             }`}
                         >
                             {opt.label}
@@ -292,9 +299,9 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-[#10898b] mb-1.5 ml-1">Observações (Opcional)</label>
+                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Observações (Opcional)</label>
                     <textarea 
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] resize-none h-24 transition-all"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] resize-none h-24 transition-all"
                         value={formNotes}
                         onChange={e => setFormNotes(e.target.value)}
                         placeholder="Comentários sobre o desempenho..."
@@ -302,7 +309,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                 </div>
 
                 <div className="pt-2">
-                    <button type="submit" className="w-full bg-[#10898b] text-white py-3.5 rounded-xl font-bold hover:bg-[#0d7274] shadow-lg shadow-[#10898b]/20 transition-all transform hover:-translate-y-0.5">
+                    <button type="submit" className="w-full bg-[#c48b5e] text-white py-3.5 rounded-xl font-bold hover:bg-[#a0704a] shadow-lg shadow-[#c48b5e]/20 transition-all transform hover:-translate-y-0.5">
                     Salvar Avaliação
                     </button>
                 </div>
