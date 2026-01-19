@@ -140,6 +140,7 @@ export default function App() {
         setCurrentUser(dbUser);
         setIsAuthenticated(true);
         localStorage.setItem('school_app_user', JSON.stringify(dbUser));
+        setCurrentPage('dashboard');
         return true;
     }
 
@@ -148,6 +149,7 @@ export default function App() {
       setCurrentUser(activeUser);
       setIsAuthenticated(true);
       localStorage.setItem('school_app_user', JSON.stringify(activeUser));
+      setCurrentPage('dashboard');
       return true;
     }
     return false;
@@ -157,6 +159,7 @@ export default function App() {
     localStorage.removeItem('school_app_user');
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setCurrentPage('dashboard');
   };
 
   // --- CRUD OPERATIONS ---

@@ -181,6 +181,19 @@ export const ClassList: React.FC<ClassListProps> = ({
       }
   };
 
+  // Helper para formatar data evitando problemas de timezone (UTC para Local)
+  const formatDateDisplay = (dateString: string) => {
+      if (!dateString) return '-';
+      // Adiciona hora fixa para evitar que o Date() interprete como UTC meia-noite e volte um dia no fuso brasileiro
+      const date = new Date(dateString + 'T12:00:00');
+      return date.toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric',
+        weekday: 'short'
+      });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -469,8 +482,8 @@ export const ClassList: React.FC<ClassListProps> = ({
                                     <div key={log.id} className="bg-white p-5 rounded-xl shadow-sm border border-[#eaddcf] hover:shadow-md transition-all">
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="bg-[#eaddcf] text-[#c48b5e] px-2 py-1 rounded-lg text-xs font-bold font-mono border border-[#c48b5e]/20">
-                                                    {new Date(log.date).toLocaleDateString()}
+                                                <span className="bg-[#eaddcf] text-[#c48b5e] px-2 py-1 rounded-lg text-xs font-bold font-mono border border-[#c48b5e]/20 capitalize">
+                                                    {formatDateDisplay(log.date)}
                                                 </span>
                                                 <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
                                                     Presença: <strong>{presentCount}</strong>/{filteredStudents.length}
