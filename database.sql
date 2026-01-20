@@ -1,45 +1,42 @@
 -- ====================================================================================
--- SCRIPT DE CORREÇÃO ESTRUTURAL (SUPABASE)
--- Execute este script no "SQL Editor" do Supabase e clique em "RUN".
+-- SCRIPT DE CORREÇÃO TOTAL (ESTRUTURA COMPLETA)
+-- Execute este script no "SQL Editor" do Supabase para garantir que todas as tabelas
+-- e colunas existam corretamente.
 -- ====================================================================================
 
--- 1. CORREÇÃO NA TABELA DE TURMAS (classes)
+-- 1. TABELA DE TURMAS (classes)
+CREATE TABLE IF NOT EXISTS public.classes (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    grade TEXT,
+    year NUMERIC,
+    shift TEXT,
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS is_remediation BOOLEAN DEFAULT false;
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_id TEXT;
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS focus_skills JSONB DEFAULT '[]'::jsonb;
 
--- 2. CORREÇÃO NA TABELA DE ALUNOS (students)
+-- 2. TABELA DE ALUNOS (students)
+CREATE TABLE IF NOT EXISTS public.students (
+    id TEXT PRIMARY KEY,
+    class_id TEXT REFERENCES public.classes(id),
+    name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS registration_number TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS birth_date TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS parent_name TEXT;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS remediation_entry_date TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS remediation_exit_date TEXT;
 
--- 3. CORREÇÃO NA TABELA DE USUÁRIOS (users)
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
-
--- 4. ATUALIZAÇÃO DA TABELA DE HABILIDADES (skills)
--- Adiciona coluna de Ano/Série
-ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS year TEXT;
-
--- 5. CRIAÇÃO DA TABELA DE DISCIPLINAS (subjects)
-CREATE TABLE IF NOT EXISTS public.subjects (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- 6. CRIAÇÃO DAS OUTRAS TABELAS SE NÃO EXISTIREM
-CREATE TABLE IF NOT EXISTS public.class_daily_logs (
-    id TEXT PRIMARY KEY,
-    class_id TEXT NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
-    date TEXT NOT NULL,
-    content TEXT NOT NULL,
-    attendance JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
+-- 3. TABELA DE USUÁRIOS (users)
 CREATE TABLE IF NOT EXISTS public.users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -50,7 +47,49 @@ CREATE TABLE IF NOT EXISTS public.users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. INSERIR DISCIPLINAS PADRÃO (Se a tabela estiver vazia)
+-- 4. TABELA DE HABILIDADES (skills)
+CREATE TABLE IF NOT EXISTS public.skills (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL,
+    description TEXT,
+    subject TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS year TEXT;
+
+-- 5. TABELA DE AVALIAÇÕES (assessments)
+CREATE TABLE IF NOT EXISTS public.assessments (
+    id TEXT PRIMARY KEY,
+    student_id TEXT REFERENCES public.students(id),
+    skill_id TEXT REFERENCES public.skills(id),
+    date TEXT NOT NULL,
+    status TEXT,
+    score NUMERIC,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS term TEXT;
+
+-- 6. TABELA DE DISCIPLINAS (subjects)
+CREATE TABLE IF NOT EXISTS public.subjects (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. TABELA DE DIÁRIO DE CLASSE (class_daily_logs)
+CREATE TABLE IF NOT EXISTS public.class_daily_logs (
+    id TEXT PRIMARY KEY,
+    class_id TEXT NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    content TEXT NOT NULL,
+    attendance JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. DADOS PADRÃO: DISCIPLINAS
 INSERT INTO public.subjects (id, name)
 VALUES 
   ('sub-lp', 'Língua Portuguesa'),
@@ -60,29 +99,37 @@ VALUES
   ('sub-geo', 'Geografia'),
   ('sub-art', 'Arte'),
   ('sub-ing', 'Inglês'),
-  ('sub-edfis', 'Educação Física')
-ON CONFLICT (id) DO NOTHING; 
--- Nota: O conflito por ID é apenas para evitar erro no script, a constraint unique é no nome.
+  ('sub-edfis', 'Educação Física'),
+  ('sub-ensrel', 'Ensino Religioso')
+ON CONFLICT (id) DO NOTHING;
 
--- 8. CONFIGURAÇÃO DE SEGURANÇA (RLS)
-ALTER TABLE public.class_daily_logs ENABLE ROW LEVEL SECURITY;
+-- 9. POLÍTICAS DE SEGURANÇA (RLS)
+-- Habilita RLS em todas as tabelas
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_daily_logs ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Enable access for all users" ON public.class_daily_logs;
+-- Remove políticas antigas para evitar duplicidade
+DROP POLICY IF EXISTS "Enable access for all users" ON public.classes;
+DROP POLICY IF EXISTS "Enable access for all users" ON public.students;
+DROP POLICY IF EXISTS "Enable access for all users" ON public.skills;
+DROP POLICY IF EXISTS "Enable access for all users" ON public.assessments;
 DROP POLICY IF EXISTS "Enable access for all users" ON public.users;
 DROP POLICY IF EXISTS "Enable access for all users" ON public.subjects;
+DROP POLICY IF EXISTS "Enable access for all users" ON public.class_daily_logs;
 
-CREATE POLICY "Enable access for all users" ON public.class_daily_logs FOR ALL USING (true) WITH CHECK (true);
+-- Cria políticas permissivas (para este estágio de desenvolvimento)
+CREATE POLICY "Enable access for all users" ON public.classes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Enable access for all users" ON public.students FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Enable access for all users" ON public.skills FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Enable access for all users" ON public.assessments FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable access for all users" ON public.users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable access for all users" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Enable access for all users" ON public.class_daily_logs FOR ALL USING (true) WITH CHECK (true);
 
--- 9. REGRAS DE INTEGRIDADE (TRAVA DE EXCLUSÃO)
-ALTER TABLE public.students DROP CONSTRAINT IF EXISTS students_class_id_fkey;
-ALTER TABLE public.students ADD CONSTRAINT students_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id) ON DELETE RESTRICT;
-
-ALTER TABLE public.assessments DROP CONSTRAINT IF EXISTS assessments_student_id_fkey;
-ALTER TABLE public.assessments ADD CONSTRAINT assessments_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE RESTRICT;
-
--- 10. ATUALIZAÇÃO DO CACHE
+-- 10. NOTIFICAR REFRESH
 NOTIFY pgrst, 'reload config';

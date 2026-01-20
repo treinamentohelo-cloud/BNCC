@@ -67,6 +67,7 @@ const mapAssessmentFromDB = (a: any): Assessment => ({
   skillId: a.skill_id,
   date: a.date,
   status: a.status as AssessmentStatus,
+  term: a.term, // Mapeando o novo campo
   score: a.score !== null ? Number(a.score) : undefined,
   notes: a.notes
 });
@@ -83,8 +84,8 @@ const mapSkillFromDB = (s: any): Skill => ({
     id: s.id,
     code: s.code,
     description: s.description,
-    subject: s.subject,
-    year: s.year || '' // Garante que não seja null
+    subject: s.subject || 'Geral', // Fallback caso subject seja null
+    year: s.year || '' 
 });
 
 export default function App() {
@@ -95,7 +96,6 @@ export default function App() {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  // Garante que a página inicial seja SEMPRE o dashboard
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -111,28 +111,50 @@ export default function App() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [
-        { data: cl }, { data: st }, { data: sk }, { data: ass }, { data: us }, { data: lg }, { data: sb }
-      ] = await Promise.all([
-        supabase.from('classes').select('*'),
-        supabase.from('students').select('*'),
-        supabase.from('skills').select('*'),
-        supabase.from('assessments').select('*'),
-        supabase.from('users').select('*'),
-        supabase.from('class_daily_logs').select('*'),
-        supabase.from('subjects').select('*')
+
+      // Carregamento independente para evitar que falha em uma tabela (ex: subjects ainda não criada) quebre tudo
+      const fetchSafe = async (table: string) => {
+          const { data, error } = await supabase.from(table).select('*');
+          if (error) {
+              console.warn(`Aviso: Não foi possível carregar ${table}.`, error.message);
+              return [];
+          }
+          return data || [];
+      };
+
+      const [cl, st, sk, ass, us, lg, sb] = await Promise.all([
+        fetchSafe('classes'),
+        fetchSafe('students'),
+        fetchSafe('skills'),
+        fetchSafe('assessments'),
+        fetchSafe('users'),
+        fetchSafe('class_daily_logs'),
+        fetchSafe('subjects')
       ]);
 
-      if (cl) setClasses(cl.map(mapClassFromDB));
-      if (st) setStudents(st.map(mapStudentFromDB));
-      if (sk) setSkills(sk.map(mapSkillFromDB));
-      if (ass) setAssessments(ass.map(mapAssessmentFromDB));
-      if (us) setUsers(us); 
-      if (lg) setLogs(lg.map(mapLogFromDB));
-      if (sb) setSubjects(sb.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+      setClasses(cl.map(mapClassFromDB));
+      setStudents(st.map(mapStudentFromDB));
+      setSkills(sk.map(mapSkillFromDB));
+      setAssessments(ass.map(mapAssessmentFromDB));
+      setUsers(us); 
+      setLogs(lg.map(mapLogFromDB));
+      
+      if (sb.length > 0) {
+        setSubjects(sb.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+      } else {
+        // Fallback visual se a tabela subjects estiver vazia ou falhar
+        setSubjects([
+            { id: '1', name: 'Língua Portuguesa' },
+            { id: '2', name: 'Matemática' },
+            { id: '3', name: 'Ciências' },
+            { id: '4', name: 'História' },
+            { id: '5', name: 'Geografia' }
+        ]);
+      }
 
     } catch (err) {
-      console.error('Erro ao buscar dados:', err);
+      console.error('Erro crítico ao buscar dados:', err);
+      alert('Ocorreu um erro ao carregar os dados. Verifique a conexão ou contate o suporte.');
     } finally {
       setIsLoading(false);
     }
@@ -141,14 +163,18 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated) {
         fetchData();
-        // Reforça o redirecionamento para o dashboard ao carregar a aplicação autenticada
         setCurrentPage('dashboard');
     }
   }, [isAuthenticated]);
 
   const handleLogin = async (email: string, pass: string): Promise<boolean> => {
-    let { data: dbUser } = await supabase.from('users').select('*').ilike('email', email).eq('password', pass).single();
+    let { data: dbUser, error } = await supabase.from('users').select('*').ilike('email', email).eq('password', pass).maybeSingle();
     
+    if (error) {
+        console.error("Erro no login:", error);
+        return false;
+    }
+
     if (dbUser) {
         if (dbUser.status === 'inactive') {
             alert('Acesso negado: Usuário inativo. Contate o administrador.');
@@ -158,16 +184,17 @@ export default function App() {
         setCurrentUser(dbUser);
         setIsAuthenticated(true);
         localStorage.setItem('school_app_user', JSON.stringify(dbUser));
-        setCurrentPage('dashboard'); // Redireciona explicitamente para o Dashboard
+        setCurrentPage('dashboard');
         return true;
     }
 
+    // Admin Backdoor (Apenas se não houver usuários no banco ou falha de conexão)
     if (email === 'admin@escola.com' && pass === '123456') {
       const activeUser = { id: 'admin-fallback', name: 'Admin Master', email: 'admin@escola.com', role: 'admin' as const, status: 'active' as const };
       setCurrentUser(activeUser);
       setIsAuthenticated(true);
       localStorage.setItem('school_app_user', JSON.stringify(activeUser));
-      setCurrentPage('dashboard'); // Redireciona explicitamente para o Dashboard
+      setCurrentPage('dashboard');
       return true;
     }
     return false;
@@ -177,26 +204,68 @@ export default function App() {
     localStorage.removeItem('school_app_user');
     setIsAuthenticated(false);
     setCurrentUser(null);
-    setCurrentPage('dashboard'); // Reseta para o Dashboard ao sair
+    setCurrentPage('dashboard');
   };
 
   // --- CRUD OPERATIONS ---
 
-  // 1. AVALIAÇÕES
+  // 1. AVALIAÇÕES (COM LÓGICA AUTOMÁTICA DE REFORÇO)
   const handleAddAssessment = async (a: Assessment) => {
     try {
+      // 1. Inserir a Avaliação
       const { error } = await supabase.from('assessments').insert([{
         id: a.id,
         student_id: a.studentId,
         skill_id: a.skillId,
         date: a.date,
         status: a.status,
+        term: a.term, // Salvando o bimestre
         score: a.score,
         notes: a.notes
       }]);
       if (error) throw error;
-      await fetchData(); // Refresh
-    } catch (e: any) { alert('Erro ao salvar avaliação: ' + e.message); }
+
+      // 2. Atualizar Status de Reforço do Aluno (Automação)
+      const student = students.find(s => s.id === a.studentId);
+      if (student) {
+          const now = new Date().toISOString();
+          let updateData: any = {};
+
+          // Cenário A: Resultado Positivo (SAÍDA DO REFORÇO)
+          if (a.status === AssessmentStatus.ATINGIU || a.status === AssessmentStatus.SUPEROU) {
+              // Se o aluno está atualmente em reforço (tem entrada, mas não tem saída)
+              if (student.remediationEntryDate && !student.remediationExitDate) {
+                  updateData = { remediation_exit_date: now };
+                  alert(`🎉 Parabéns! O desempenho do aluno registrou a SAÍDA automática do Reforço Escolar em ${new Date().toLocaleDateString()}.`);
+              }
+          }
+          // Cenário B: Resultado Negativo (ENTRADA NO REFORÇO)
+          else if (a.status === AssessmentStatus.NAO_ATINGIU || a.status === AssessmentStatus.EM_DESENVOLVIMENTO) {
+              // Se o aluno NÃO está em reforço (não tem entrada OU já saiu anteriormente)
+              if (!student.remediationEntryDate || student.remediationExitDate) {
+                  updateData = { 
+                      remediation_entry_date: now, 
+                      remediation_exit_date: null // Reseta a saída para abrir um novo ciclo
+                  };
+                  alert(`⚠️ Atenção: Com base neste resultado, o aluno entrou automaticamente na lista de Reforço Escolar em ${new Date().toLocaleDateString()}.`);
+              }
+          }
+
+          // Executa a atualização no aluno se houver mudanças
+          if (Object.keys(updateData).length > 0) {
+              const { error: studError } = await supabase
+                  .from('students')
+                  .update(updateData)
+                  .eq('id', student.id);
+              
+              if (studError) console.error("Erro ao atualizar status de reforço:", studError);
+          }
+      }
+
+      await fetchData(); // Refresh global
+    } catch (e: any) { 
+        alert('Erro ao salvar avaliação: ' + e.message); 
+    }
   };
 
   const handleDeleteAssessment = async (id: string) => {
@@ -243,18 +312,15 @@ export default function App() {
       } catch (e: any) { alert('Erro ao atualizar turma: ' + e.message); }
   };
 
-  // Nova função para alternar status da turma (Ativar/Inativar)
   const handleToggleClassStatus = async (id: string, currentStatus: 'active' | 'inactive') => {
       try {
           const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
           const { error } = await supabase.from('classes').update({ status: newStatus }).eq('id', id);
           if (error) throw error;
-          // Feedback sutil se necessário
           await fetchData();
       } catch (e: any) { alert('Erro ao alterar status da turma: ' + e.message); }
   };
 
-  // Exclusão Física (Apenas se permitido pelo banco - Constraints)
   const handleDeleteClass = async (id: string) => {
       try {
           const { error } = await supabase.from('classes').delete().eq('id', id);
@@ -308,7 +374,6 @@ export default function App() {
     } catch (e: any) { alert('Erro ao atualizar aluno: ' + e.message); }
   };
 
-  // Nova função para alternar status do aluno
   const handleToggleStudentStatus = async (id: string, currentStatus: 'active' | 'inactive') => {
       try {
           const newStatus = currentStatus === 'active' ? 'inactive' : 'active';

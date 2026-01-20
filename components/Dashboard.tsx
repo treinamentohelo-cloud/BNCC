@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -12,7 +12,7 @@ import {
   Cell, 
   Legend 
 } from 'recharts';
-import { Users, BookOpen, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, BookOpen, AlertCircle, CheckCircle, Filter } from 'lucide-react';
 import { Assessment, AssessmentStatus, ClassGroup, Skill, Student, User } from '../types';
 
 interface DashboardProps {
@@ -32,25 +32,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
   currentUser,
   onNavigateToRemediation 
 }) => {
+  const [selectedTerm, setSelectedTerm] = useState('all');
 
-  // Metrics
+  // Filter Assessments based on Term
+  const filteredAssessments = selectedTerm === 'all' 
+    ? assessments 
+    : assessments.filter(a => a.term === selectedTerm);
+
+  // Metrics (Totals remain global, others are filtered)
   const totalStudents = students.length;
   const totalSkills = skills.length;
-  // Remediation if not Superou AND not Atingiu
-  const remediationCases = assessments.filter(a => a.status === AssessmentStatus.NAO_ATINGIU || a.status === AssessmentStatus.EM_DESENVOLVIMENTO).length;
-  const successCases = assessments.filter(a => a.status === AssessmentStatus.SUPEROU || a.status === AssessmentStatus.ATINGIU).length;
+  
+  // Remediation if not Superou AND not Atingiu (Based on filtered view)
+  const remediationCases = filteredAssessments.filter(a => a.status === AssessmentStatus.NAO_ATINGIU || a.status === AssessmentStatus.EM_DESENVOLVIMENTO).length;
+  const successCases = filteredAssessments.filter(a => a.status === AssessmentStatus.SUPEROU || a.status === AssessmentStatus.ATINGIU).length;
 
   // Pie Chart Data
   const pieData = [
-    { name: 'Superou', value: assessments.filter(a => a.status === AssessmentStatus.SUPEROU).length, color: '#10B981' }, // Verde Esmeralda
-    { name: 'Atingiu', value: assessments.filter(a => a.status === AssessmentStatus.ATINGIU).length, color: '#06b6d4' }, // Ciano/Azul
-    { name: 'Em Desenv.', value: assessments.filter(a => a.status === AssessmentStatus.EM_DESENVOLVIMENTO).length, color: '#F59E0B' }, // Laranja/Amber
-    { name: 'Não Atingiu', value: assessments.filter(a => a.status === AssessmentStatus.NAO_ATINGIU).length, color: '#EF4444' }, // Vermelho
+    { name: 'Superou', value: filteredAssessments.filter(a => a.status === AssessmentStatus.SUPEROU).length, color: '#10B981' }, // Verde Esmeralda
+    { name: 'Atingiu', value: filteredAssessments.filter(a => a.status === AssessmentStatus.ATINGIU).length, color: '#06b6d4' }, // Ciano/Azul
+    { name: 'Em Desenv.', value: filteredAssessments.filter(a => a.status === AssessmentStatus.EM_DESENVOLVIMENTO).length, color: '#F59E0B' }, // Laranja/Amber
+    { name: 'Não Atingiu', value: filteredAssessments.filter(a => a.status === AssessmentStatus.NAO_ATINGIU).length, color: '#EF4444' }, // Vermelho
   ];
 
   // Bar Chart Data (Performance by Subject)
   const subjectPerformance = skills.reduce((acc, skill) => {
-    const skillAssessments = assessments.filter(a => a.skillId === skill.id);
+    const skillAssessments = filteredAssessments.filter(a => a.skillId === skill.id);
     if (skillAssessments.length === 0) return acc;
 
     if (!acc[skill.subject]) {
@@ -80,10 +87,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
              {currentUser?.role === 'admin' && <span className="text-[#c48b5e] font-medium ml-1">(Administrador)</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="bg-[#fcf9f6] border border-[#eaddcf] text-[#c48b5e] text-sm font-semibold px-4 py-2 rounded-full shadow-sm">
-            Ano Letivo {new Date().getFullYear()}
-          </span>
+        
+        <div className="flex items-center gap-3">
+           <div className="relative">
+             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#c48b5e]" size={16} />
+             <select
+                value={selectedTerm}
+                onChange={(e) => setSelectedTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-[#fcf9f6] border border-[#eaddcf] rounded-xl text-[#433422] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#c48b5e] appearance-none cursor-pointer"
+             >
+                <option value="all">📊 Visão Geral (Ano)</option>
+                <option value="1º Bimestre">1º Bimestre</option>
+                <option value="2º Bimestre">2º Bimestre</option>
+                <option value="3º Bimestre">3º Bimestre</option>
+                <option value="4º Bimestre">4º Bimestre</option>
+                <option value="Recuperação">Recuperação</option>
+             </select>
+           </div>
+           
+           <span className="hidden md:inline-block bg-[#fcf9f6] border border-[#eaddcf] text-[#8c7e72] text-sm font-semibold px-4 py-2 rounded-full shadow-sm">
+             Ano {new Date().getFullYear()}
+           </span>
         </div>
       </div>
 
@@ -111,20 +135,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
           bg="bg-orange-100"
           onClick={onNavigateToRemediation}
           isActionable
+          subtitle={selectedTerm !== 'all' ? selectedTerm : undefined}
         />
         <KpiCard 
-          title="Habilidades Consolidadas" 
+          title="Consolidadas" 
           value={successCases} 
           icon={<CheckCircle size={24} />} 
           color="text-green-600"
           bg="bg-green-100"
+          subtitle={selectedTerm !== 'all' ? selectedTerm : undefined}
         />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-[#eaddcf] transition-all hover:shadow-md">
-          <h3 className="text-lg font-semibold mb-4 text-[#433422]">Distribuição de Desempenho</h3>
+          <div className="flex justify-between items-center mb-4">
+             <h3 className="text-lg font-semibold text-[#433422]">Distribuição de Desempenho</h3>
+             {selectedTerm !== 'all' && <span className="text-xs bg-[#eaddcf] text-[#433422] px-2 py-1 rounded font-bold">{selectedTerm}</span>}
+          </div>
+          
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -149,8 +179,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-[#eaddcf] transition-all hover:shadow-md">
-          <h3 className="text-lg font-semibold mb-4 text-[#433422]">Taxa de Sucesso por Disciplina (%)</h3>
-          <p className="text-xs text-gray-500 mb-2">Considera "Atingiu" e "Superou"</p>
+          <div className="flex justify-between items-start mb-4">
+              <div>
+                  <h3 className="text-lg font-semibold text-[#433422]">Taxa de Sucesso por Disciplina (%)</h3>
+                  <p className="text-xs text-gray-500">Considera "Atingiu" e "Superou"</p>
+              </div>
+              {selectedTerm !== 'all' && <span className="text-xs bg-[#eaddcf] text-[#433422] px-2 py-1 rounded font-bold">{selectedTerm}</span>}
+          </div>
+          
           <div className="h-64">
              {barData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -172,7 +208,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
              ) : (
                <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-lg">
                  <BookOpen size={32} className="mb-2 opacity-50" />
-                 <p className="text-sm">Sem dados de avaliação suficientes</p>
+                 <p className="text-sm">Sem dados suficientes neste período</p>
                </div>
              )}
           </div>
@@ -190,7 +226,8 @@ const KpiCard: React.FC<{
   bg: string;
   onClick?: () => void;
   isActionable?: boolean;
-}> = ({ title, value, icon, color, bg, onClick, isActionable }) => (
+  subtitle?: string;
+}> = ({ title, value, icon, color, bg, onClick, isActionable, subtitle }) => (
   <div 
     onClick={onClick}
     className={`p-6 rounded-xl shadow-sm border border-transparent bg-white flex items-center justify-between transition-all group border-[#eaddcf]
@@ -199,6 +236,7 @@ const KpiCard: React.FC<{
     <div>
       <p className="text-sm font-semibold text-[#8c7e72] mb-1">{title}</p>
       <h3 className={`text-3xl font-bold ${color}`}>{value}</h3>
+      {subtitle && <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold">{subtitle}</p>}
     </div>
     <div className={`p-3 rounded-xl ${bg} ${color}`}>
       {icon}

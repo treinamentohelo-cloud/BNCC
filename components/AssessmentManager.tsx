@@ -23,6 +23,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterClass, setFilterClass] = useState('all');
+  const [filterTerm, setFilterTerm] = useState('all'); // Novo estado para filtro de bimestre
   const [searchTerm, setSearchTerm] = useState('');
   
   const canDelete = currentUser?.role !== 'professor';
@@ -32,6 +33,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
   const [formStudentId, setFormStudentId] = useState('');
   const [formSkillId, setFormSkillId] = useState('');
   const [formStatus, setFormStatus] = useState<AssessmentStatus>(AssessmentStatus.EM_DESENVOLVIMENTO);
+  const [formTerm, setFormTerm] = useState('1º Bimestre');
   const [formNotes, setFormNotes] = useState('');
 
   // Filtered Lists for View
@@ -40,11 +42,12 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
       const skill = skills.find(s => s.id === a.skillId);
       
       const matchesClass = filterClass === 'all' || student?.classId === filterClass;
+      const matchesTerm = filterTerm === 'all' || a.term === filterTerm; // Lógica do filtro de bimestre
       const matchesSearch = searchTerm === '' || 
                             student?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             skill?.code.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesClass && matchesSearch;
+      return matchesClass && matchesTerm && matchesSearch;
   });
 
   // Derived Lists for Form
@@ -66,6 +69,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
         skillId: formSkillId,
         date: new Date().toISOString().split('T')[0],
         status: formStatus,
+        term: formTerm,
         notes: formNotes
     });
 
@@ -121,7 +125,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex flex-col lg:flex-row gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
          <div className="flex-1 relative">
              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
              <input 
@@ -132,18 +136,37 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none text-[#000039]"
              />
          </div>
-         <div className="w-full md:w-64 relative">
-             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-             <select
-                value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-[#000039]"
-             >
-                 <option value="all">Todas as Turmas</option>
-                 {classes.map(c => (
-                     <option key={c.id} value={c.id}>{c.name}</option>
-                 ))}
-             </select>
+         
+         <div className="flex gap-2 w-full lg:w-auto">
+             <div className="w-1/2 lg:w-48 relative">
+                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                 <select
+                    value={filterTerm}
+                    onChange={(e) => setFilterTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-[#000039] text-sm"
+                 >
+                     <option value="all">Todos Bimestres</option>
+                     <option value="1º Bimestre">1º Bimestre</option>
+                     <option value="2º Bimestre">2º Bimestre</option>
+                     <option value="3º Bimestre">3º Bimestre</option>
+                     <option value="4º Bimestre">4º Bimestre</option>
+                     <option value="Recuperação">Recuperação</option>
+                 </select>
+             </div>
+
+             <div className="w-1/2 lg:w-48 relative">
+                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                 <select
+                    value={filterClass}
+                    onChange={(e) => setFilterClass(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-[#000039] text-sm"
+                 >
+                     <option value="all">Todas as Turmas</option>
+                     {classes.map(c => (
+                         <option key={c.id} value={c.id}>{c.name}</option>
+                     ))}
+                 </select>
+             </div>
          </div>
       </div>
 
@@ -157,9 +180,14 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                 <div key={assessment.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition-all p-5 relative group flex flex-col justify-between h-full">
                     {/* Header: Date & Status */}
                     <div className="flex justify-between items-start mb-3">
-                        <div className="bg-gray-50 text-gray-500 text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
-                            <Calendar size={12} />
-                            {new Date(assessment.date).toLocaleDateString('pt-BR')}
+                        <div className="flex flex-col">
+                           <div className="bg-gray-50 text-gray-500 text-xs font-semibold px-2 py-1 rounded flex items-center gap-1 w-fit mb-1">
+                              <Calendar size={12} />
+                              {new Date(assessment.date).toLocaleDateString('pt-BR')}
+                           </div>
+                           {assessment.term && (
+                             <span className="text-[10px] text-[#c48b5e] font-bold uppercase tracking-wider">{assessment.term}</span>
+                           )}
                         </div>
                         {getStatusBadge(assessment.status)}
                     </div>
@@ -279,26 +307,35 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                     )}
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold text-[#c48b5e] mb-2 ml-1">4. Resultado</label>
-                    <div className="grid grid-cols-4 gap-2">
-                        {[
-                        { val: AssessmentStatus.NAO_ATINGIU, label: 'Não Atingiu', color: 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' },
-                        { val: AssessmentStatus.EM_DESENVOLVIMENTO, label: 'Em Desenv.', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
-                        { val: AssessmentStatus.ATINGIU, label: 'Atingiu', color: 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100' },
-                        { val: AssessmentStatus.SUPEROU, label: 'Superou', color: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' },
-                        ].map((opt) => (
-                        <button
-                            key={opt.val}
-                            type="button"
-                            onClick={() => setFormStatus(opt.val)}
-                            className={`border px-1 py-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all shadow-sm ${
-                            formStatus === opt.val ? 'ring-2 ring-[#c48b5e] ring-offset-1 scale-105 ' + opt.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
-                            }`}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">4. Bimestre</label>
+                        <select
+                            required
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                            value={formTerm}
+                            onChange={e => setFormTerm(e.target.value)}
                         >
-                            {opt.label}
-                        </button>
-                        ))}
+                            <option value="1º Bimestre">1º Bimestre</option>
+                            <option value="2º Bimestre">2º Bimestre</option>
+                            <option value="3º Bimestre">3º Bimestre</option>
+                            <option value="4º Bimestre">4º Bimestre</option>
+                            <option value="Recuperação">Recuperação</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-[#c48b5e] mb-2 ml-1">5. Resultado</label>
+                        <select
+                            required
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                            value={formStatus}
+                            onChange={e => setFormStatus(e.target.value as AssessmentStatus)}
+                        >
+                           <option value={AssessmentStatus.NAO_ATINGIU}>Não Atingiu</option>
+                           <option value={AssessmentStatus.EM_DESENVOLVIMENTO}>Em Desenvolvimento</option>
+                           <option value={AssessmentStatus.ATINGIU}>Atingiu</option>
+                           <option value={AssessmentStatus.SUPEROU}>Superou</option>
+                        </select>
                     </div>
                 </div>
 

@@ -51,6 +51,7 @@ export interface Assessment {
   skillId: string;
   date: string;
   status: AssessmentStatus;
+  term?: string; // Novo campo: Bimestre (Ex: "1º Bimestre")
   score?: number;
   notes?: string;
 }
