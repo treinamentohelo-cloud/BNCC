@@ -31,6 +31,14 @@ export const UserManager: React.FC<UserManagerProps> = ({
     status: 'active' as 'active' | 'inactive'
   });
 
+  // Helper para gerar ID seguro
+  const generateId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -71,7 +79,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
     }
 
     const payload: User = {
-      id: editingId || crypto.randomUUID(),
+      id: editingId || generateId(),
       name: formData.name,
       email: formData.email,
       role: formData.role,

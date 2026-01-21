@@ -23,7 +23,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterClass, setFilterClass] = useState('all');
-  const [filterTerm, setFilterTerm] = useState('all'); // Novo estado para filtro de bimestre
+  const [filterTerm, setFilterTerm] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   
   const canDelete = currentUser?.role !== 'professor';
@@ -36,13 +36,21 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
   const [formTerm, setFormTerm] = useState('1º Bimestre');
   const [formNotes, setFormNotes] = useState('');
 
+  // Helper para gerar ID seguro
+  const generateId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
   // Filtered Lists for View
   const filteredAssessments = assessments.filter(a => {
       const student = students.find(stud => stud.id === a.studentId);
       const skill = skills.find(s => s.id === a.skillId);
       
       const matchesClass = filterClass === 'all' || student?.classId === filterClass;
-      const matchesTerm = filterTerm === 'all' || a.term === filterTerm; // Lógica do filtro de bimestre
+      const matchesTerm = filterTerm === 'all' || a.term === filterTerm;
       const matchesSearch = searchTerm === '' || 
                             student?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             skill?.code.toLowerCase().includes(searchTerm.toLowerCase());
@@ -64,7 +72,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
     if (!formStudentId || !formSkillId) return;
 
     onAddAssessment({
-        id: crypto.randomUUID(),
+        id: generateId(),
         studentId: formStudentId,
         skillId: formSkillId,
         date: new Date().toISOString().split('T')[0],
@@ -74,7 +82,6 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
     });
 
     setIsModalOpen(false);
-    // Reset but keep class selected for easier consecutive entry
     setFormStudentId('');
     setFormStatus(AssessmentStatus.EM_DESENVOLVIMENTO);
     setFormNotes('');

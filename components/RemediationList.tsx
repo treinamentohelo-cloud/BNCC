@@ -18,6 +18,18 @@ interface RemediationListProps {
   onDeleteClass?: (id: string) => void;
 }
 
+// Tipos auxiliares para o reduce
+interface RemediationItem {
+    student: Student;
+    skill: Skill;
+    assessment: Assessment;
+}
+
+interface RemediationGroup {
+    classInfo: ClassGroup;
+    items: RemediationItem[];
+}
+
 export const RemediationList: React.FC<RemediationListProps> = ({
   assessments,
   students,
@@ -58,15 +70,24 @@ export const RemediationList: React.FC<RemediationListProps> = ({
 
   const canDelete = currentUser?.role !== 'professor';
 
+  // Helper para gerar ID seguro
+  const generateId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
   // Filters
   const remediationClasses = classes.filter(c => c.isRemediation);
   
   // Group by Class for Overview
-  // Logic: Show students who have assessments with bad status AND do not have a remediationExitDate
   const remediationItems = assessments.filter(
     (a) => a.status === AssessmentStatus.NAO_ATINGIU || a.status === AssessmentStatus.EM_DESENVOLVIMENTO
   );
   
+  // Tipagem Explícita do Reduce: <Record<string, RemediationGroup>>
+  // FIXED: Removido generics da chamada reduce para compatibilidade com TSX
   const byClass = remediationItems.reduce((acc, item) => {
     const student = students.find(s => s.id === item.studentId);
     if (!student) return acc;
@@ -81,21 +102,21 @@ export const RemediationList: React.FC<RemediationListProps> = ({
 
     if (!acc[classGroup.id]) acc[classGroup.id] = { classInfo: classGroup, items: [] };
     
-    // Evitar duplicatas do mesmo aluno/habilidade se houver múltiplas avaliações (pegar a mais recente se necessário, aqui simplificado)
+    // Evitar duplicatas do mesmo aluno/habilidade se houver múltiplas avaliações
     const exists = acc[classGroup.id].items.some(i => i.student.id === student.id && i.skill.id === skill.id);
     if (!exists) {
         acc[classGroup.id].items.push({ student, skill, assessment: item });
     }
     
     return acc;
-  }, {} as Record<string, { classInfo: ClassGroup, items: { student: Student, skill: Skill, assessment: Assessment }[] }>);
+  }, {} as Record<string, RemediationGroup>);
 
   // --- Handlers ---
 
   const handleCreateRemediationClass = () => {
     if(!newClassName || !onAddClass) return;
     onAddClass({
-        id: crypto.randomUUID(),
+        id: generateId(),
         name: newClassName,
         grade: 'Reforço Escolar',
         year: new Date().getFullYear(),
@@ -151,7 +172,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
       if (!onAddLog || !selectedDailyClass || !dailyContent) return;
 
       onAddLog({
-          id: crypto.randomUUID(),
+          id: generateId(),
           classId: selectedDailyClass,
           date: dailyDate,
           content: dailyContent,
@@ -313,7 +334,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                         Reavaliar <ArrowRight size={14} />
                       </button>
 
-                      {/* Botão de Concluir Reforço - Agora com paleta TEAL e aviso de nova avaliação */}
+                      {/* Botão de Concluir Reforço */}
                       {onUpdateStudent && !student.remediationExitDate && (
                           <button 
                              onClick={() => handleFinishRemediation(student)}
@@ -680,7 +701,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
             {activeTab === 'report' && renderReport()}
         </div>
 
-        {/* Modals (Create Class / Enroll) - Mantidos da versão anterior */}
+        {/* Modals (Create Class / Enroll) */}
         {isModalOpen && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm print:hidden">
                 <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-[#bfe4cd]">

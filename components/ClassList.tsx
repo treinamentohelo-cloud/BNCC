@@ -93,7 +93,7 @@ export const ClassList: React.FC<ClassListProps> = ({
           grade: cls.grade,
           year: cls.year,
           shift: cls.shift,
-          teacherId: cls.teacherId,
+          teacherId: cls.teacherId || '',
           status: cls.status
       });
       setIsClassModalOpen(true);
@@ -101,7 +101,6 @@ export const ClassList: React.FC<ClassListProps> = ({
 
   const handleToggleStatusClick = (e: React.MouseEvent, cls: ClassGroup) => {
       e.stopPropagation();
-      const action = cls.status === 'active' ? 'INATIVAR' : 'REATIVAR';
       const confirmMsg = cls.status === 'active' 
          ? `Deseja ARQUIVAR a turma "${cls.name}"?\n\nEla ficará oculta nas listagens principais, mas o histórico será preservado.`
          : `Deseja REATIVAR a turma "${cls.name}"?`;
@@ -129,10 +128,11 @@ export const ClassList: React.FC<ClassListProps> = ({
       }
   }
 
-  const generateId = () => {
-    return typeof crypto !== 'undefined' && crypto.randomUUID 
-        ? crypto.randomUUID() 
-        : `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const generateId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   };
 
   const handleCreateClass = (e: React.FormEvent) => {
@@ -144,9 +144,9 @@ export const ClassList: React.FC<ClassListProps> = ({
         name: classFormData.name!,
         grade: classFormData.grade!,
         year: classFormData.year || new Date().getFullYear(),
-        shift: classFormData.shift as any,
-        teacherId: classFormData.teacherId || '',
-        status: classFormData.status as any,
+        shift: classFormData.shift as 'Matutino' | 'Vespertino' | 'Integral' | 'Noturno',
+        teacherId: classFormData.teacherId || undefined, // Send undefined if empty
+        status: classFormData.status as 'active' | 'inactive',
         isRemediation: false
     };
 
@@ -174,7 +174,7 @@ export const ClassList: React.FC<ClassListProps> = ({
       birthDate: studentFormData.birthDate,
       parentName: studentFormData.parentName,
       phone: studentFormData.phone,
-      status: studentFormData.status as any
+      status: studentFormData.status as 'active' | 'inactive'
     });
 
     setIsStudentModalOpen(false);
@@ -212,10 +212,11 @@ export const ClassList: React.FC<ClassListProps> = ({
       }
   };
 
-  // Helper para formatar data evitando problemas de timezone (UTC para Local)
   const formatDateDisplay = (dateString: string) => {
       if (!dateString) return '-';
-      const date = new Date(dateString + 'T12:00:00');
+      // Create date object treating the string as local date components to avoid timezone shifts
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
       return date.toLocaleDateString('pt-BR', { 
         day: '2-digit', 
         month: '2-digit', 
@@ -284,7 +285,6 @@ export const ClassList: React.FC<ClassListProps> = ({
                 className={`rounded-xl shadow-sm border border-[#eaddcf] border-t-4 p-6 cursor-pointer hover:shadow-lg transition-all group relative overflow-hidden
                     ${isActive ? 'bg-white border-t-[#c48b5e]' : 'bg-gray-50 border-t-gray-400 opacity-80'}`}
               >
-                {/* Status Badge */}
                 {!isActive && (
                   <div className="absolute top-2 right-2 bg-gray-200 text-gray-600 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider flex items-center gap-1">
                       <Archive size={10} /> Inativa
@@ -318,7 +318,6 @@ export const ClassList: React.FC<ClassListProps> = ({
                     <span className="text-xs text-[#8c7e72] font-medium truncate">{teacherName}</span>
                 </div>
 
-                {/* Focus Skills Badge */}
                 {focusCount > 0 && isActive && (
                    <div className="mb-4 inline-flex items-center gap-1.5 text-xs text-[#a0704a] bg-[#eaddcf]/30 px-2 py-1 rounded border border-[#eaddcf]/50">
                       <Target size={12} />
@@ -336,7 +335,6 @@ export const ClassList: React.FC<ClassListProps> = ({
                         <Edit2 size={16} />
                       </button>
                       
-                      {/* Botão de Toggle Status (Arquivar ou Reativar) */}
                       <button 
                          onClick={(e) => handleToggleStatusClick(e, cls)} 
                          className={`p-2 rounded-full transition-colors ${isActive ? 'text-orange-400 hover:text-orange-600 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
@@ -345,7 +343,6 @@ export const ClassList: React.FC<ClassListProps> = ({
                          {isActive ? <Archive size={16} /> : <RefreshCcw size={16} />}
                       </button>
 
-                      {/* Botão de Excluir Física (Apenas se inativa e vazia) - Oculto para professores */}
                       {canDelete && !isActive && studentCount === 0 && (
                           <button onClick={(e) => handleDeleteClassClick(e, cls.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Excluir Permanentemente">
                             <Trash2 size={16} />
@@ -374,7 +371,6 @@ export const ClassList: React.FC<ClassListProps> = ({
         </div>
       ) : (
         <div className="space-y-6">
-            {/* TABS DE NAVEGAÇÃO INTERNA DA TURMA */}
             <div className="flex gap-2 border-b border-[#eaddcf] pb-1">
                 <button 
                     onClick={() => setActiveTab('students')}
@@ -392,7 +388,6 @@ export const ClassList: React.FC<ClassListProps> = ({
                 </button>
             </div>
 
-            {/* CONTEÚDO DA ABA: ALUNOS */}
             {activeTab === 'students' && (
                 <div className="bg-white rounded-xl shadow-sm border border-[#eaddcf] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <table className="w-full text-left border-collapse">
@@ -444,7 +439,6 @@ export const ClassList: React.FC<ClassListProps> = ({
                                     </td>
                                     <td className="p-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            {/* Botão de Toggle Aluno */}
                                             <button 
                                                 onClick={(e) => handleToggleStudentClick(e, student)}
                                                 className={`p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${isActiveStudent ? 'text-orange-400 hover:bg-orange-50' : 'text-green-500 hover:bg-green-50'}`}
@@ -482,10 +476,8 @@ export const ClassList: React.FC<ClassListProps> = ({
                 </div>
             )}
 
-            {/* CONTEÚDO DA ABA: DIÁRIO DE CLASSE */}
             {activeTab === 'diary' && (
                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    {/* Form de Registro */}
                     <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-[#eaddcf] h-fit">
                         <h3 className="font-bold text-[#433422] text-lg mb-4 flex items-center gap-2">
                              <Edit2 size={18} className="text-[#c48b5e]" /> Novo Registro
@@ -532,7 +524,6 @@ export const ClassList: React.FC<ClassListProps> = ({
                         </form>
                     </div>
 
-                    {/* Lista de Registros */}
                     <div className="lg:col-span-2 space-y-4">
                         <h3 className="font-bold text-[#433422] text-lg mb-2 flex items-center gap-2">
                             <Clock size={18} className="text-[#c48b5e]" /> Histórico de Aulas
@@ -575,7 +566,7 @@ export const ClassList: React.FC<ClassListProps> = ({
         </div>
       )}
 
-      {/* MODAL: NOVA TURMA e MODAL: NOVO ALUNO (Mantidos sem alterações de estrutura) */}
+      {/* MODAL: NOVA TURMA e MODAL: NOVO ALUNO */}
       {isClassModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#eaddcf]">

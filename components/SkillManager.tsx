@@ -47,6 +47,14 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
 
   const canDelete = currentUser?.role !== 'professor';
 
+  // Helper para gerar ID seguro
+  const generateId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
   const filteredSkills = skills.filter(s => 
     s.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
     s.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,7 +93,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
     }
 
     const payload = {
-      id: editingId || crypto.randomUUID(),
+      id: editingId || generateId(),
       ...formData
     };
 
@@ -104,7 +112,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
       if (!newSubjectName.trim()) return;
       
       const newSubject: Subject = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           name: newSubjectName.trim()
       };
       

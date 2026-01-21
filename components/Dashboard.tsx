@@ -24,11 +24,28 @@ interface DashboardProps {
   onNavigateToRemediation: () => void;
 }
 
+interface PieChartData {
+    name: string;
+    value: number;
+    color: string;
+}
+
+interface BarChartData {
+    name: string;
+    taxa: number;
+}
+
+interface SubjectStats {
+    subject: string;
+    success: number;
+    total: number;
+}
+
 export const Dashboard: React.FC<DashboardProps> = ({ 
   classes, 
   students, 
   assessments, 
-  skills,
+  skills, 
   currentUser,
   onNavigateToRemediation 
 }) => {
@@ -47,8 +64,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const remediationCases = filteredAssessments.filter(a => a.status === AssessmentStatus.NAO_ATINGIU || a.status === AssessmentStatus.EM_DESENVOLVIMENTO).length;
   const successCases = filteredAssessments.filter(a => a.status === AssessmentStatus.SUPEROU || a.status === AssessmentStatus.ATINGIU).length;
 
-  // Pie Chart Data
-  const pieData = [
+  // Pie Chart Data - Explicit Type
+  const pieData: PieChartData[] = [
     { name: 'Superou', value: filteredAssessments.filter(a => a.status === AssessmentStatus.SUPEROU).length, color: '#10B981' }, // Verde Esmeralda
     { name: 'Atingiu', value: filteredAssessments.filter(a => a.status === AssessmentStatus.ATINGIU).length, color: '#06b6d4' }, // Ciano/Azul
     { name: 'Em Desenv.', value: filteredAssessments.filter(a => a.status === AssessmentStatus.EM_DESENVOLVIMENTO).length, color: '#F59E0B' }, // Laranja/Amber
@@ -56,6 +73,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   ];
 
   // Bar Chart Data (Performance by Subject)
+  // FIXED: Removido <Record...> da chamada e movido para o valor inicial com 'as' para evitar erro de JSX
   const subjectPerformance = skills.reduce((acc, skill) => {
     const skillAssessments = filteredAssessments.filter(a => a.skillId === skill.id);
     if (skillAssessments.length === 0) return acc;
@@ -68,9 +86,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     // Consideramos sucesso tanto Superou quanto Atingiu
     acc[skill.subject].success += skillAssessments.filter(a => a.status === AssessmentStatus.SUPEROU || a.status === AssessmentStatus.ATINGIU).length;
     return acc;
-  }, {} as Record<string, { subject: string, success: number, total: number }>);
+  }, {} as Record<string, SubjectStats>);
 
-  const barData = Object.values(subjectPerformance).map((item: { subject: string, success: number, total: number }) => ({
+  // Explicit Type for Bar Data
+  const barData: BarChartData[] = Object.values(subjectPerformance).map((item: SubjectStats) => ({
     name: item.subject,
     taxa: Math.round((item.success / item.total) * 100)
   }));

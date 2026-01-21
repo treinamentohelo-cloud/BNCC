@@ -42,6 +42,14 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
     status: 'active'
   });
 
+  // Helper para gerar ID seguro
+  const generateId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
   const filteredStudents = students.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (s.registrationNumber && s.registrationNumber.includes(searchTerm));
@@ -111,7 +119,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
     }
 
     const payload: Student = {
-      id: editingId || crypto.randomUUID(),
+      id: editingId || generateId(),
       name: formData.name!,
       classId: formData.classId!,
       avatarUrl: formData.avatarUrl,
@@ -119,7 +127,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
       birthDate: formData.birthDate,
       parentName: formData.parentName,
       phone: formData.phone,
-      status: formData.status as any
+      status: (formData.status === 'active' || formData.status === 'inactive') ? formData.status : 'active'
     };
 
     if (editingId) {
@@ -394,7 +402,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                             <select 
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-[#433422] bg-[#fcf9f6] focus:bg-white"
                                 value={formData.status}
-                                onChange={e => setFormData({...formData, status: e.target.value as any})}
+                                onChange={e => setFormData({...formData, status: e.target.value as 'active' | 'inactive'})}
                             >
                                 <option value="active">Ativo</option>
                                 <option value="inactive">Inativo</option>
