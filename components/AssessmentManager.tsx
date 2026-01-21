@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, Clock, AlertTriangle, Filter, Search, Trash2, ClipboardCheck, X, Calendar, User, BookOpen } from 'lucide-react';
+import { Plus, Check, Clock, AlertTriangle, Filter, Search, Trash2, ClipboardCheck, X, Calendar, User, BookOpen, Star, Brain, BarChart2 } from 'lucide-react';
 import { Assessment, AssessmentStatus, ClassGroup, Skill, Student, User as UserType } from '../types';
 
 interface AssessmentManagerProps {
@@ -28,12 +28,21 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
   
   const canDelete = currentUser?.role !== 'professor';
 
-  // Form State
+  // Form State Unificado
   const [formClassId, setFormClassId] = useState('');
   const [formStudentId, setFormStudentId] = useState('');
-  const [formSkillId, setFormSkillId] = useState('');
-  const [formStatus, setFormStatus] = useState<AssessmentStatus>(AssessmentStatus.EM_DESENVOLVIMENTO);
+  const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
   const [formTerm, setFormTerm] = useState('1º Trimestre');
+  
+  // Habilidade
+  const [formSkillId, setFormSkillId] = useState('');
+  const [formStatus, setFormStatus] = useState<AssessmentStatus | ''>('');
+  
+  // Notas (Strings to handle empty state)
+  const [formParticipation, setFormParticipation] = useState('');
+  const [formBehavior, setFormBehavior] = useState('');
+  const [formExam, setFormExam] = useState('');
+  
   const [formNotes, setFormNotes] = useState('');
 
   // Helper para gerar ID seguro
@@ -69,25 +78,41 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formStudentId || !formSkillId) return;
+    if (!formStudentId) {
+        alert("Selecione um aluno.");
+        return;
+    }
 
     onAddAssessment({
         id: generateId(),
         studentId: formStudentId,
-        skillId: formSkillId,
-        date: new Date().toISOString().split('T')[0],
-        status: formStatus,
+        date: formDate,
         term: formTerm,
-        notes: formNotes
+        notes: formNotes,
+        
+        // Habilidade (opcional)
+        skillId: formSkillId || undefined,
+        status: (formStatus as AssessmentStatus) || undefined,
+        
+        // Notas Unificadas
+        participationScore: formParticipation ? Number(formParticipation) : undefined,
+        behaviorScore: formBehavior ? Number(formBehavior) : undefined,
+        examScore: formExam ? Number(formExam) : undefined
     });
 
     setIsModalOpen(false);
+    // Reset Form (keep class and term for quick next entry)
     setFormStudentId('');
-    setFormStatus(AssessmentStatus.EM_DESENVOLVIMENTO);
+    setFormSkillId('');
+    setFormStatus('');
+    setFormParticipation('');
+    setFormBehavior('');
+    setFormExam('');
     setFormNotes('');
   };
 
-  const getStatusBadge = (status: AssessmentStatus) => {
+  const getStatusBadge = (status?: AssessmentStatus) => {
+    if (!status) return null;
     switch (status) {
       case AssessmentStatus.SUPEROU:
         return (
@@ -122,7 +147,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h2 className="text-3xl font-bold text-[#000039]">Avaliações</h2>
-           <p className="text-gray-500">Histórico e registro de desempenho</p>
+           <p className="text-gray-500">Histórico unificado de desempenho e comportamento</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -150,7 +175,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                  <select
                     value={filterTerm}
                     onChange={(e) => setFilterTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-[#000039] text-sm"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-black text-sm"
                  >
                      <option value="all">Todos Trimestres</option>
                      <option value="1º Trimestre">1º Trimestre</option>
@@ -165,7 +190,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                  <select
                     value={filterClass}
                     onChange={(e) => setFilterClass(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-[#000039] text-sm"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-black text-sm"
                  >
                      <option value="all">Todas as Turmas</option>
                      {classes.map(c => (
@@ -184,7 +209,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 
             return (
                 <div key={assessment.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition-all p-5 relative group flex flex-col justify-between h-full">
-                    {/* Header: Date & Status */}
+                    {/* Header: Date & Term */}
                     <div className="flex justify-between items-start mb-3">
                         <div className="flex flex-col">
                            <div className="bg-gray-50 text-gray-500 text-xs font-semibold px-2 py-1 rounded flex items-center gap-1 w-fit mb-1">
@@ -198,7 +223,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                         {getStatusBadge(assessment.status)}
                     </div>
 
-                    {/* Body: Student & Skill Info */}
+                    {/* Body: Student */}
                     <div className="mb-4">
                         <div className="flex items-center gap-3 mb-3">
                              <div className="w-10 h-10 rounded-full bg-[#eaddcf] flex items-center justify-center text-[#c48b5e] font-bold shrink-0">
@@ -212,15 +237,36 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                              </div>
                         </div>
 
-                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                             <div className="flex items-center gap-2 mb-1">
-                                 <BookOpen size={14} className="text-[#c48b5e]" />
-                                 <span className="font-mono text-xs font-bold text-[#c48b5e] bg-[#eaddcf]/30 px-1.5 rounded">{skill?.code}</span>
-                             </div>
-                             <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed" title={skill?.description}>
-                                 {skill?.description}
-                             </p>
-                        </div>
+                        {/* Skill Info (if present) */}
+                        {skill && (
+                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 mb-2">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <BookOpen size={14} className="text-[#c48b5e]" />
+                                    <span className="font-mono text-xs font-bold text-[#c48b5e] bg-[#eaddcf]/30 px-1.5 rounded">{skill?.code}</span>
+                                </div>
+                                <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed" title={skill?.description}>
+                                    {skill?.description}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Unified Scores Grid */}
+                        {(assessment.participationScore !== undefined || assessment.behaviorScore !== undefined || assessment.examScore !== undefined) && (
+                            <div className="grid grid-cols-3 gap-2 mt-3">
+                                <div className="bg-[#fcf9f6] p-2 rounded-lg text-center border border-[#eaddcf]">
+                                    <span className="block text-[10px] text-gray-500 uppercase font-bold">Part.</span>
+                                    <span className="text-sm font-bold text-[#433422]">{assessment.participationScore ?? '-'}</span>
+                                </div>
+                                <div className="bg-[#fcf9f6] p-2 rounded-lg text-center border border-[#eaddcf]">
+                                    <span className="block text-[10px] text-gray-500 uppercase font-bold">Comp.</span>
+                                    <span className="text-sm font-bold text-[#433422]">{assessment.behaviorScore ?? '-'}</span>
+                                </div>
+                                <div className="bg-[#fcf9f6] p-2 rounded-lg text-center border border-[#eaddcf]">
+                                    <span className="block text-[10px] text-gray-500 uppercase font-bold">Prova</span>
+                                    <span className="text-sm font-bold text-[#433422]">{assessment.examScore ?? '-'}</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer: Delete Action */}
@@ -247,78 +293,71 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
         )}
       </div>
 
-      {/* MODAL DE AVALIAÇÃO */}
+      {/* MODAL UNIFICADO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#eaddcf]">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden animate-in fade-in zoom-in duration-200 border border-[#eaddcf]">
              <div className="px-6 py-5 bg-gradient-to-r from-[#c48b5e] to-[#a0704a] flex justify-between items-center">
                 <h3 className="font-bold text-xl text-white flex items-center gap-2">
                    <ClipboardCheck className="text-[#eaddcf]" />
-                   Registrar Avaliação
+                   Registro de Avaliação
                 </h3>
                 <button onClick={() => setIsModalOpen(false)} className="text-white/80 hover:text-white transition-colors">
                    <X size={24} />
                 </button>
              </div>
-             <form onSubmit={handleSubmit} className="p-8 space-y-5">
+             
+             <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[85vh] overflow-y-auto">
                 
-                <div>
-                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">1. Selecione a Turma</label>
-                    <select
-                        required
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
-                        value={formClassId}
-                        onChange={e => { setFormClassId(e.target.value); setFormStudentId(''); }}
-                    >
-                        <option value="">Selecione...</option>
-                        {classes.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">2. Selecione o Aluno</label>
-                    <select
-                        required
-                        disabled={!formClassId}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white disabled:bg-gray-100 disabled:text-gray-400 text-[#000039] transition-all"
-                        value={formStudentId}
-                        onChange={e => setFormStudentId(e.target.value)}
-                    >
-                        <option value="">Selecione...</option>
-                        {studentsInSelectedClass.map(s => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">3. Selecione a Habilidade</label>
-                    <select
-                        required
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
-                        value={formSkillId}
-                        onChange={e => setFormSkillId(e.target.value)}
-                    >
-                        <option value="">Selecione...</option>
-                        {skills.map(s => (
-                            <option key={s.id} value={s.id}>{s.code} - {s.subject}</option>
-                        ))}
-                    </select>
-                    {formSkillId && (
-                        <p className="text-xs bg-[#eaddcf]/30 p-3 rounded-lg mt-2 text-[#000039] border border-[#eaddcf]">
-                            {skills.find(s => s.id === formSkillId)?.description}
-                        </p>
-                    )}
+                {/* 1. Contexto */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Turma</label>
+                        <select
+                            required
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-white text-black transition-all"
+                            value={formClassId}
+                            onChange={e => { setFormClassId(e.target.value); setFormStudentId(''); }}
+                        >
+                            <option value="">Selecione...</option>
+                            {classes.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Aluno</label>
+                        <select
+                            required
+                            disabled={!formClassId}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-white disabled:bg-gray-100 disabled:text-gray-400 text-black transition-all"
+                            value={formStudentId}
+                            onChange={e => setFormStudentId(e.target.value)}
+                        >
+                            <option value="">Selecione...</option>
+                            {studentsInSelectedClass.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">4. Trimestre</label>
+                        <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Data</label>
+                        <input 
+                            type="date"
+                            required
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black"
+                            value={formDate}
+                            onChange={e => setFormDate(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Trimestre</label>
                         <select
                             required
-                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black transition-all"
                             value={formTerm}
                             onChange={e => setFormTerm(e.target.value)}
                         >
@@ -328,26 +367,98 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                             <option value="Recuperação">Recuperação</option>
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-[#c48b5e] mb-2 ml-1">5. Resultado</label>
-                        <select
-                            required
-                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
-                            value={formStatus}
-                            onChange={e => setFormStatus(e.target.value as AssessmentStatus)}
-                        >
-                           <option value={AssessmentStatus.NAO_ATINGIU}>Não Atingiu</option>
-                           <option value={AssessmentStatus.EM_DESENVOLVIMENTO}>Em Desenvolvimento</option>
-                           <option value={AssessmentStatus.ATINGIU}>Atingiu</option>
-                           <option value={AssessmentStatus.SUPEROU}>Superou</option>
-                        </select>
+                </div>
+
+                <hr className="border-gray-100" />
+
+                {/* 2. Avaliação de Habilidade (Opcional) */}
+                <div>
+                    <h4 className="font-bold text-[#000039] mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
+                        <Brain size={16} className="text-[#c48b5e]" /> Avaliação de Habilidade (BNCC)
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Selecione a Habilidade</label>
+                            <select
+                                className="w-full border border-gray-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black text-sm"
+                                value={formSkillId}
+                                onChange={e => setFormSkillId(e.target.value)}
+                            >
+                                <option value="">-- Nenhuma Habilidade Selecionada --</option>
+                                {skills.map(s => (
+                                    <option key={s.id} value={s.id}>{s.code} - {s.subject}</option>
+                                ))}
+                            </select>
+                            {formSkillId && (
+                                <p className="text-xs text-gray-500 mt-2 italic px-1">
+                                    "{skills.find(s => s.id === formSkillId)?.description}"
+                                </p>
+                            )}
+                        </div>
+                        {formSkillId && (
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Parecer / Status</label>
+                                <select
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black text-sm"
+                                    value={formStatus}
+                                    onChange={e => setFormStatus(e.target.value as AssessmentStatus)}
+                                >
+                                    <option value="">Selecione o resultado...</option>
+                                    <option value={AssessmentStatus.NAO_ATINGIU}>Não Atingiu</option>
+                                    <option value={AssessmentStatus.EM_DESENVOLVIMENTO}>Em Desenvolvimento</option>
+                                    <option value={AssessmentStatus.ATINGIU}>Atingiu</option>
+                                    <option value={AssessmentStatus.SUPEROU}>Superou</option>
+                                </select>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <hr className="border-gray-100" />
+
+                {/* 3. Notas Quantitativas */}
+                <div>
+                    <h4 className="font-bold text-[#000039] mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
+                        <BarChart2 size={16} className="text-[#c48b5e]" /> Notas Gerais (0 a 10)
+                    </h4>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Participação</label>
+                            <input 
+                                type="number" step="0.1" min="0" max="10"
+                                placeholder="-"
+                                className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black text-center font-bold"
+                                value={formParticipation}
+                                onChange={e => setFormParticipation(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Comportamento</label>
+                            <input 
+                                type="number" step="0.1" min="0" max="10"
+                                placeholder="-"
+                                className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black text-center font-bold"
+                                value={formBehavior}
+                                onChange={e => setFormBehavior(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Prova / Trab.</label>
+                            <input 
+                                type="number" step="0.1" min="0" max="10"
+                                placeholder="-"
+                                className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black text-center font-bold"
+                                value={formExam}
+                                onChange={e => setFormExam(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Observações (Opcional)</label>
+                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Observações Gerais</label>
                     <textarea 
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] resize-none h-24 transition-all"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black resize-none h-20 transition-all"
                         value={formNotes}
                         onChange={e => setFormNotes(e.target.value)}
                         placeholder="Comentários sobre o desempenho..."
@@ -356,7 +467,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 
                 <div className="pt-2">
                     <button type="submit" className="w-full bg-[#c48b5e] text-white py-3.5 rounded-xl font-bold hover:bg-[#a0704a] shadow-lg shadow-[#c48b5e]/20 transition-all transform hover:-translate-y-0.5">
-                    Salvar Avaliação
+                    Salvar Registro Completo
                     </button>
                 </div>
              </form>

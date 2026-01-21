@@ -196,7 +196,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
                   required
                   value={formData.code}
                   onChange={e => setFormData({...formData, code: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#10898b] outline-none text-[#000039] bg-gray-50 focus:bg-white transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#10898b] outline-none text-black bg-white transition-all"
                   placeholder="Ex: EF01LP01"
                 />
               </div>
@@ -207,7 +207,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
                   required
                   value={formData.year}
                   onChange={e => setFormData({...formData, year: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#10898b] outline-none text-[#000039] bg-gray-50 focus:bg-white transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#10898b] outline-none text-black bg-white transition-all"
                   placeholder="Ex: 1º Ano"
                 />
               </div>
@@ -219,7 +219,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
                         required
                         value={formData.subject}
                         onChange={e => setFormData({...formData, subject: e.target.value})}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#10898b] outline-none text-[#000039] bg-gray-50 focus:bg-white transition-all"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#10898b] outline-none text-black bg-white transition-all"
                      >
                         <option value="">Selecione...</option>
                         {subjects.map(sub => (
@@ -243,7 +243,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
                   required
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#10898b] outline-none text-[#000039] bg-gray-50 focus:bg-white transition-all resize-none h-24"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#10898b] outline-none text-black bg-white transition-all resize-none h-24"
                   placeholder="Descrição detalhada da habilidade..."
                 />
               </div>
@@ -273,7 +273,7 @@ export const SkillManager: React.FC<SkillManagerProps> = ({
                             value={newSubjectName}
                             onChange={e => setNewSubjectName(e.target.value)}
                             placeholder="Ex: Robótica"
-                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] text-[#000039]"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] text-black bg-white"
                         />
                     </div>
                     <button type="submit" className="w-full bg-[#10898b] text-white py-3 rounded-xl font-bold hover:bg-[#0d7274]">

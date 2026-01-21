@@ -146,7 +146,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
                     required
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-[#000039] bg-gray-50 focus:bg-white"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-black bg-white"
                     placeholder="Ex: Maria Silva"
                   />
                 </div>
@@ -158,7 +158,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
                     type="email"
                     value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-[#000039] bg-gray-50 focus:bg-white"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-black bg-white"
                     placeholder="professor@escola.com"
                   />
                 </div>
@@ -173,7 +173,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={e => setFormData({...formData, password: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl pl-10 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-[#000039] bg-gray-50 focus:bg-white"
+                      className="w-full border border-gray-200 rounded-xl pl-10 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent transition-all text-black bg-white"
                       placeholder={editingId ? "Deixe em branco para manter a atual" : "Mínimo 6 caracteres"}
                     />
                     <button 
@@ -192,7 +192,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
                        <select 
                           value={formData.role}
                           onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
-                          className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-white text-black transition-all"
                        >
                           <option value="professor">Professor(a)</option>
                           <option value="coordenador">Coordenador(a)</option>
@@ -204,7 +204,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
                        <select 
                           value={formData.status}
                           onChange={e => setFormData({...formData, status: e.target.value as any})}
-                          className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-white text-black transition-all"
                        >
                           <option value="active">Ativo</option>
                           <option value="inactive">Inativo (Bloqueado)</option>

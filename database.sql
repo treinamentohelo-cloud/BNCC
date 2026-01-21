@@ -1,7 +1,6 @@
 -- ====================================================================================
--- SCRIPT DE CORREÇÃO TOTAL (ESTRUTURA COMPLETA)
--- Execute este script no "SQL Editor" do Supabase para garantir que todas as tabelas
--- e colunas existam corretamente.
+-- SCRIPT DE CORREÇÃO TOTAL (ESTRUTURA COMPLETA - ATUALIZADO PARA AVALIAÇÃO UNIFICADA)
+-- Execute este script no "SQL Editor" do Supabase.
 -- ====================================================================================
 
 -- 1. TABELA DE TURMAS (classes)
@@ -16,15 +15,9 @@ CREATE TABLE IF NOT EXISTS public.classes (
 );
 
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS is_remediation BOOLEAN DEFAULT false;
--- teacher_id mantido para compatibilidade legado, mas o sistema usará teacher_ids
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_id TEXT; 
-ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_ids TEXT[]; -- Array de IDs (TEXT[])
+ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_ids TEXT[]; 
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS focus_skills JSONB DEFAULT '[]'::jsonb;
-
--- MIGRAÇÃO DE DADOS (Se teacher_id existir e teacher_ids estiver vazio, copia o valor)
-UPDATE public.classes 
-SET teacher_ids = ARRAY[teacher_id] 
-WHERE teacher_id IS NOT NULL AND (teacher_ids IS NULL OR teacher_ids = '{}');
 
 -- 2. TABELA DE ALUNOS (students)
 CREATE TABLE IF NOT EXISTS public.students (
@@ -65,19 +58,27 @@ CREATE TABLE IF NOT EXISTS public.skills (
 
 ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS year TEXT;
 
--- 5. TABELA DE AVALIAÇÕES (assessments)
+-- 5. TABELA DE AVALIAÇÕES (assessments) - ATUALIZADA PARA REGISTRO UNIFICADO
 CREATE TABLE IF NOT EXISTS public.assessments (
     id TEXT PRIMARY KEY,
     student_id TEXT REFERENCES public.students(id),
     skill_id TEXT REFERENCES public.skills(id),
     date TEXT NOT NULL,
-    status TEXT,
-    score NUMERIC,
+    status TEXT, -- Usado para o status da Habilidade (Superou, Atingiu...)
     notes TEXT,
+    term TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS term TEXT;
+-- Novos campos para avaliação multidimensional num único registro
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS participation_score NUMERIC;
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS behavior_score NUMERIC;
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS exam_score NUMERIC;
+
+-- Campos legados (podem ser mantidos ou migrados, mantendo por segurança)
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS score NUMERIC;
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS category TEXT; 
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS weight NUMERIC;
 
 -- 6. TABELA DE DISCIPLINAS (subjects)
 CREATE TABLE IF NOT EXISTS public.subjects (
@@ -119,20 +120,16 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.class_daily_logs ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Enable access for all users" ON public.classes;
-DROP POLICY IF EXISTS "Enable access for all users" ON public.students;
-DROP POLICY IF EXISTS "Enable access for all users" ON public.skills;
-DROP POLICY IF EXISTS "Enable access for all users" ON public.assessments;
-DROP POLICY IF EXISTS "Enable access for all users" ON public.users;
-DROP POLICY IF EXISTS "Enable access for all users" ON public.subjects;
-DROP POLICY IF EXISTS "Enable access for all users" ON public.class_daily_logs;
-
-CREATE POLICY "Enable access for all users" ON public.classes FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable access for all users" ON public.students FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable access for all users" ON public.skills FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable access for all users" ON public.assessments FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable access for all users" ON public.users FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable access for all users" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable access for all users" ON public.class_daily_logs FOR ALL USING (true) WITH CHECK (true);
+-- Recria políticas permissivas (Simples)
+DO $$ 
+DECLARE 
+    t text; 
+BEGIN 
+    FOREACH t IN ARRAY ARRAY['classes', 'students', 'skills', 'assessments', 'users', 'subjects', 'class_daily_logs'] 
+    LOOP 
+        EXECUTE format('DROP POLICY IF EXISTS "Enable access for all users" ON public.%I', t); 
+        EXECUTE format('CREATE POLICY "Enable access for all users" ON public.%I FOR ALL USING (true) WITH CHECK (true)', t); 
+    END LOOP; 
+END $$;
 
 NOTIFY pgrst, 'reload config';

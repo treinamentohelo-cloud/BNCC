@@ -383,7 +383,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                      <select 
                         value={selectedDailyClass} 
                         onChange={e => setSelectedDailyClass(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-white text-black transition-all"
                      >
                          <option value="">Selecione...</option>
                          {remediationClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -398,7 +398,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                                 type="date" 
                                 value={dailyDate} 
                                 onChange={e => setDailyDate(e.target.value)} 
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all" 
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-white text-black transition-all" 
                              />
                          </div>
                          <div>
@@ -406,18 +406,18 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                              <textarea 
                                 value={dailyContent} 
                                 onChange={e => setDailyContent(e.target.value)} 
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all h-28 resize-none"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] focus:border-transparent bg-white text-black transition-all h-28 resize-none"
                                 placeholder="Descreva o que foi trabalhado..."
                                 required
                              />
                          </div>
                          <div>
                              <label className="block text-sm font-semibold text-[#10898b] mb-2 ml-1">Lista de Presença</label>
-                             <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50">
+                             <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-white">
                                  {studentsInClass.map(s => (
-                                     <div key={s.id} onClick={() => toggleAttendance(s.id)} className="flex items-center gap-3 p-2 hover:bg-white hover:shadow-sm rounded-lg cursor-pointer transition-all border border-transparent hover:border-gray-100">
+                                     <div key={s.id} onClick={() => toggleAttendance(s.id)} className="flex items-center gap-3 p-2 hover:bg-gray-50 hover:shadow-sm rounded-lg cursor-pointer transition-all border border-transparent hover:border-gray-100">
                                          {dailyAttendance[s.id] ? <CheckSquare className="text-green-500" size={20} /> : <Square className="text-gray-300" size={20} />}
-                                         <span className={`text-sm font-medium ${dailyAttendance[s.id] ? 'text-[#000039]' : 'text-gray-500'}`}>{s.name}</span>
+                                         <span className={`text-sm font-medium ${dailyAttendance[s.id] ? 'text-black' : 'text-gray-500'}`}>{s.name}</span>
                                      </div>
                                  ))}
                                  {studentsInClass.length === 0 && <p className="text-xs text-gray-400 text-center py-2">Sem alunos nesta turma.</p>}
@@ -542,7 +542,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                     <select 
                         value={reportFilterClass}
                         onChange={(e) => setReportFilterClass(e.target.value)}
-                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-[#000039] focus:outline-none focus:border-[#10898b] bg-gray-50"
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-black focus:outline-none focus:border-[#10898b] bg-white"
                     >
                         <option value="all">Todas as Turmas</option>
                         {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -554,7 +554,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                             type="date" 
                             value={reportStartDate}
                             onChange={(e) => setReportStartDate(e.target.value)}
-                            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-[#000039] focus:outline-none focus:border-[#10898b] bg-gray-50"
+                            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-black focus:outline-none focus:border-[#10898b] bg-white"
                         />
                     </div>
 
@@ -564,7 +564,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                             type="date" 
                             value={reportEndDate}
                             onChange={(e) => setReportEndDate(e.target.value)}
-                            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-[#000039] focus:outline-none focus:border-[#10898b] bg-gray-50"
+                            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-black focus:outline-none focus:border-[#10898b] bg-white"
                         />
                     </div>
 
@@ -716,11 +716,11 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                     <div className="p-6 space-y-4">
                         <div>
                             <label className="block text-sm font-semibold text-[#10898b] mb-1.5 ml-1">Nome da Turma</label>
-                            <input className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] bg-gray-50 focus:bg-white text-[#000039]" placeholder="Ex: Reforço Matemática" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} />
+                            <input className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] bg-white text-black" placeholder="Ex: Reforço Matemática" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} />
                         </div>
                         <div>
                            <label className="block text-sm font-semibold text-[#10898b] mb-1.5 ml-1">Professor Responsável</label>
-                           <select className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] bg-gray-50 focus:bg-white text-[#000039]" value={selectedTeacherId} onChange={e => setSelectedTeacherId(e.target.value)}>
+                           <select className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] bg-white text-black" value={selectedTeacherId} onChange={e => setSelectedTeacherId(e.target.value)}>
                               <option value="">Selecione...</option>
                               {users.filter(u => u.role !== 'admin').map(u => (<option key={u.id} value={u.id}>{u.name}</option>))}
                            </select>
@@ -749,7 +749,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-[#10898b] mb-1.5 ml-1">Selecione a Turma de Reforço</label>
-                            <select className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] bg-gray-50 focus:bg-white text-[#000039]" value={selectedRemediationClassId} onChange={(e) => setSelectedRemediationClassId(e.target.value)}>
+                            <select className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#10898b] bg-white text-black" value={selectedRemediationClassId} onChange={(e) => setSelectedRemediationClassId(e.target.value)}>
                                 <option value="">Selecione...</option>
                                 {remediationClasses.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
                             </select>

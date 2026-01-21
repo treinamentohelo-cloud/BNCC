@@ -170,7 +170,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
             <select 
                value={filterClass}
                onChange={(e) => setFilterClass(e.target.value)}
-               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-[#433422]"
+               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-black"
             >
                 <option value="all">Todas as Turmas</option>
                 {classes.map(c => (
@@ -301,7 +301,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                 <div className="flex flex-col md:flex-row gap-6">
                     {/* Coluna Esquerda: Foto */}
                     <div className="flex flex-col items-center gap-3">
-                         <div className="w-24 h-24 bg-[#fcf9f6] rounded-full flex items-center justify-center border-2 border-dashed border-[#c48b5e]/30 overflow-hidden relative group">
+                         <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-2 border-dashed border-[#c48b5e]/30 overflow-hidden relative group">
                             {formData.avatarUrl ? (
                                 <img src={formData.avatarUrl} className="w-full h-full object-cover" />
                             ) : (
@@ -328,7 +328,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                             </label>
                             <input 
                                 required
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-[#433422] bg-[#fcf9f6] focus:bg-white"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-black bg-white"
                                 value={formData.name}
                                 onChange={e => setFormData({...formData, name: e.target.value})}
                             />
@@ -340,7 +340,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                                     <Hash size={14} /> Matrícula
                                 </label>
                                 <input 
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-[#433422] bg-[#fcf9f6] focus:bg-white"
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-black bg-white"
                                     value={formData.registrationNumber}
                                     onChange={e => setFormData({...formData, registrationNumber: e.target.value})}
                                 />
@@ -351,7 +351,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                                 </label>
                                 <input 
                                     type="date"
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-[#433422] bg-[#fcf9f6] focus:bg-white"
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-black bg-white"
                                     value={formData.birthDate}
                                     onChange={e => setFormData({...formData, birthDate: e.target.value})}
                                 />
@@ -362,7 +362,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                             <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5">Turma</label>
                             <select 
                                 required
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-[#433422] bg-[#fcf9f6] focus:bg-white"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-black bg-white"
                                 value={formData.classId}
                                 onChange={e => setFormData({...formData, classId: e.target.value})}
                             >
@@ -381,7 +381,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5">Responsável Legal</label>
                             <input 
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-[#433422] bg-[#fcf9f6] focus:bg-white"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-black bg-white"
                                 value={formData.parentName}
                                 onChange={e => setFormData({...formData, parentName: e.target.value})}
                             />
@@ -392,7 +392,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                             </label>
                             <input 
                                 placeholder="(00) 00000-0000"
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-[#433422] bg-[#fcf9f6] focus:bg-white"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-black bg-white"
                                 value={formData.phone}
                                 onChange={e => setFormData({...formData, phone: e.target.value})}
                             />
@@ -400,7 +400,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                         <div>
                             <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5">Status da Matrícula</label>
                             <select 
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-[#433422] bg-[#fcf9f6] focus:bg-white"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent transition-all text-black bg-white"
                                 value={formData.status}
                                 onChange={e => setFormData({...formData, status: e.target.value as 'active' | 'inactive'})}
                             >

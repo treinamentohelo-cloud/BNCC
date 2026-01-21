@@ -64,7 +64,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               type="email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#fcf9f6] border border-[#eaddcf] rounded-xl focus:ring-2 focus:ring-[#c48b5e] focus:bg-white focus:border-transparent outline-none transition-all text-[#433422] placeholder-[#d1c5b8] font-medium"
+              className="w-full px-4 py-3.5 bg-white border border-[#eaddcf] rounded-xl focus:ring-2 focus:ring-[#c48b5e] focus:bg-white focus:border-transparent outline-none transition-all text-black placeholder-[#d1c5b8] font-medium"
               placeholder="seu@escola.com"
             />
           </div>
@@ -75,7 +75,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#fcf9f6] border border-[#eaddcf] rounded-xl focus:ring-2 focus:ring-[#c48b5e] focus:bg-white focus:border-transparent outline-none transition-all text-[#433422] placeholder-[#d1c5b8] font-medium"
+              className="w-full px-4 py-3.5 bg-white border border-[#eaddcf] rounded-xl focus:ring-2 focus:ring-[#c48b5e] focus:bg-white focus:border-transparent outline-none transition-all text-black placeholder-[#d1c5b8] font-medium"
               placeholder="••••••••"
             />
           </div>

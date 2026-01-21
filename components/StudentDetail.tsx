@@ -60,7 +60,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
   // Helper para gerar ID seguro
   const generateId = (): string => {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
+        return crypto.randomUUID() as string;
     }
     return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   };
@@ -86,7 +86,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
       const subjectSkillIds = subjectSkills.map(s => s.id);
 
       const termAssessments = studentAssessments.filter(a => 
-          subjectSkillIds.includes(a.skillId) && a.term === termName
+          a.skillId && subjectSkillIds.includes(a.skillId) && a.term === termName
       );
 
       if (termAssessments.length === 0) return null;
@@ -276,7 +276,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
                     </div>
                     <div className="divide-y divide-gray-100">
                     {items.map(({ skill, assessment }) => {
-                        const isFocus = focusSkillsIds.includes(skill.id as string);
+                        const isFocus = focusSkillsIds.includes(skill.id);
                         return (
                         <div key={`${skill.id}-${assessment?.id}`} className="p-4 md:p-6 hover:bg-gray-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex-1">
@@ -471,16 +471,16 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
             <form onSubmit={handleSubmit} className="p-8 space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Habilidade BNCC</label>
-                <select required value={selectedSkillId} onChange={(e) => setSelectedSkillId(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-gray-50 focus:bg-white text-[#000039]">
+                <select required value={selectedSkillId} onChange={(e) => setSelectedSkillId(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black">
                   <option value="">Selecione...</option>
-                  {skills.map(s => (<option key={s.id} value={s.id} className={focusSkillsIds.includes(s.id as string) ? 'font-bold text-[#c48b5e]' : ''}>{focusSkillsIds.includes(s.id as string) ? '★ ' : ''}{s.code} - {s.subject}</option>))}
+                  {skills.map(s => (<option key={s.id} value={s.id} className={focusSkillsIds.includes(s.id) ? 'font-bold text-[#c48b5e]' : ''}>{focusSkillsIds.includes(s.id) ? '★ ' : ''}{s.code} - {s.subject}</option>))}
                 </select>
                 {selectedSkillId && <p className="mt-2 text-xs text-gray-600 bg-[#eaddcf]/20 p-3 rounded-lg border border-[#eaddcf]">{skills.find(s => s.id === selectedSkillId)?.description}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Trimestre</label>
-                    <select required className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-gray-50 focus:bg-white text-[#000039]" value={term} onChange={e => setTerm(e.target.value)}>
+                    <select required className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black" value={term} onChange={e => setTerm(e.target.value)}>
                         {TERMS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
@@ -503,7 +503,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
               )}
               <div>
                 <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Observações</label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-gray-50 focus:bg-white h-24 resize-none" placeholder="Detalhes..." />
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-white text-black h-24 resize-none" placeholder="Detalhes..." />
               </div>
               <div className="pt-2">
                 <button type="submit" className="w-full bg-[#c48b5e] text-white py-3.5 rounded-xl font-bold hover:bg-[#a0704a] shadow-lg shadow-[#c48b5e]/20 transition-all transform hover:-translate-y-0.5">Salvar Avaliação</button>

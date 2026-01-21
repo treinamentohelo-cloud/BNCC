@@ -48,12 +48,18 @@ export interface Student {
 export interface Assessment {
   id: string;
   studentId: string;
-  skillId: string;
   date: string;
-  status: AssessmentStatus;
-  term?: string; // Novo campo: Bimestre (Ex: "1º Bimestre")
-  score?: number;
+  term?: string; // Ex: "1º Trimestre"
   notes?: string;
+
+  // --- Parte 1: Habilidade BNCC ---
+  skillId?: string;
+  status?: AssessmentStatus; // Avaliação da Habilidade
+
+  // --- Parte 2: Notas Quantitativas (0-10) ---
+  participationScore?: number;
+  behaviorScore?: number;
+  examScore?: number;
 }
 
 export interface ClassDailyLog {

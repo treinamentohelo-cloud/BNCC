@@ -70,9 +70,12 @@ const mapAssessmentFromDB = (a: any): Assessment => ({
   skillId: a.skill_id,
   date: a.date,
   status: a.status as AssessmentStatus,
-  term: a.term, // Mapeando o novo campo
-  score: a.score !== null ? Number(a.score) : undefined,
-  notes: a.notes
+  term: a.term, 
+  notes: a.notes,
+  // Mapping new unified fields, falling back to legacy fields if necessary
+  participationScore: a.participation_score !== null ? Number(a.participation_score) : (a.category === 'participation' ? Number(a.score) : undefined),
+  behaviorScore: a.behavior_score !== null ? Number(a.behavior_score) : (a.category === 'behavior' ? Number(a.score) : undefined),
+  examScore: a.exam_score !== null ? Number(a.exam_score) : (a.category === 'exam' ? Number(a.score) : undefined)
 });
 
 const mapLogFromDB = (l: any): ClassDailyLog => ({
@@ -115,7 +118,6 @@ export default function App() {
     try {
       setIsLoading(true);
 
-      // Carregamento independente para evitar que falha em uma tabela (ex: subjects ainda não criada) quebre tudo
       const fetchSafe = async (table: string) => {
           const { data, error } = await supabase.from(table).select('*');
           if (error) {
@@ -145,7 +147,6 @@ export default function App() {
       if (sb.length > 0) {
         setSubjects(sb.sort((a: any, b: any) => a.name.localeCompare(b.name)));
       } else {
-        // Fallback visual se a tabela subjects estiver vazia ou falhar
         setSubjects([
             { id: '1', name: 'Língua Portuguesa' },
             { id: '2', name: 'Matemática' },
@@ -191,7 +192,7 @@ export default function App() {
         return true;
     }
 
-    // Admin Backdoor (Apenas se não houver usuários no banco ou falha de conexão)
+    // Admin Backdoor
     if (email === 'admin@escola.com' && pass === '123456') {
       const activeUser = { id: 'admin-fallback', name: 'Admin Master', email: 'admin@escola.com', role: 'admin' as const, status: 'active' as const };
       setCurrentUser(activeUser);
@@ -212,60 +213,58 @@ export default function App() {
 
   // --- CRUD OPERATIONS ---
 
-  // 1. AVALIAÇÕES (COM LÓGICA AUTOMÁTICA DE REFORÇO)
+  // 1. AVALIAÇÕES (UNIFIED)
   const handleAddAssessment = async (a: Assessment) => {
     try {
-      // 1. Inserir a Avaliação
       const { error } = await supabase.from('assessments').insert([{
         id: a.id,
         student_id: a.studentId,
-        skill_id: a.skillId,
+        skill_id: a.skillId || null,
         date: a.date,
-        status: a.status,
-        term: a.term, // Salvando o bimestre
-        score: a.score,
-        notes: a.notes
+        status: a.status || null,
+        term: a.term,
+        notes: a.notes,
+        // Unificado:
+        participation_score: a.participationScore,
+        behavior_score: a.behaviorScore,
+        exam_score: a.examScore
       }]);
       if (error) throw error;
 
-      // 2. Atualizar Status de Reforço do Aluno (Automação)
-      const student = students.find(s => s.id === a.studentId);
-      if (student) {
-          const now = new Date().toISOString();
-          let updateData: any = {};
+      // Lógica de Reforço: Apenas se houver avaliação de habilidade (status)
+      if (a.skillId && a.status) {
+          const student = students.find(s => s.id === a.studentId);
+          if (student) {
+              const now = new Date().toISOString();
+              let updateData: any = {};
 
-          // Cenário A: Resultado Positivo (SAÍDA DO REFORÇO)
-          if (a.status === AssessmentStatus.ATINGIU || a.status === AssessmentStatus.SUPEROU) {
-              // Se o aluno está atualmente em reforço (tem entrada, mas não tem saída)
-              if (student.remediationEntryDate && !student.remediationExitDate) {
-                  updateData = { remediation_exit_date: now };
-                  alert(`🎉 Parabéns! O desempenho do aluno registrou a SAÍDA automática do Reforço Escolar em ${new Date().toLocaleDateString()}.`);
+              if (a.status === AssessmentStatus.ATINGIU || a.status === AssessmentStatus.SUPEROU) {
+                  if (student.remediationEntryDate && !student.remediationExitDate) {
+                      updateData = { remediation_exit_date: now };
+                      alert(`🎉 Parabéns! O desempenho do aluno registrou a SAÍDA automática do Reforço Escolar.`);
+                  }
               }
-          }
-          // Cenário B: Resultado Negativo (ENTRADA NO REFORÇO)
-          else if (a.status === AssessmentStatus.NAO_ATINGIU || a.status === AssessmentStatus.EM_DESENVOLVIMENTO) {
-              // Se o aluno NÃO está em reforço (não tem entrada OU já saiu anteriormente)
-              if (!student.remediationEntryDate || student.remediationExitDate) {
-                  updateData = { 
-                      remediation_entry_date: now, 
-                      remediation_exit_date: null // Reseta a saída para abrir um novo ciclo
-                  };
-                  alert(`⚠️ Atenção: Com base neste resultado, o aluno entrou automaticamente na lista de Reforço Escolar em ${new Date().toLocaleDateString()}.`);
+              else if (a.status === AssessmentStatus.NAO_ATINGIU || a.status === AssessmentStatus.EM_DESENVOLVIMENTO) {
+                  if (!student.remediationEntryDate || student.remediationExitDate) {
+                      updateData = { 
+                          remediation_entry_date: now, 
+                          remediation_exit_date: null 
+                      };
+                      alert(`⚠️ Atenção: O aluno entrou automaticamente na lista de Reforço Escolar.`);
+                  }
               }
-          }
 
-          // Executa a atualização no aluno se houver mudanças
-          if (Object.keys(updateData).length > 0) {
-              const { error: studError } = await supabase
-                  .from('students')
-                  .update(updateData)
-                  .eq('id', student.id);
-              
-              if (studError) console.error("Erro ao atualizar status de reforço:", studError);
+              if (Object.keys(updateData).length > 0) {
+                  const { error: studError } = await supabase
+                      .from('students')
+                      .update(updateData)
+                      .eq('id', student.id);
+                  if (studError) console.error("Erro ao atualizar reforço:", studError);
+              }
           }
       }
 
-      await fetchData(); // Refresh global
+      await fetchData(); 
     } catch (e: any) { 
         alert('Erro ao salvar avaliação: ' + e.message); 
     }
@@ -289,8 +288,8 @@ export default function App() {
         year: c.year,
         shift: c.shift,
         status: c.status,
-        teacher_ids: c.teacherIds, // Salva o array de IDs
-        teacher_id: c.teacherIds && c.teacherIds.length > 0 ? c.teacherIds[0] : null, // Compatibilidade legado
+        teacher_ids: c.teacherIds, 
+        teacher_id: c.teacherIds && c.teacherIds.length > 0 ? c.teacherIds[0] : null,
         is_remediation: c.isRemediation,
         focus_skills: c.focusSkills
       }]);
@@ -307,8 +306,8 @@ export default function App() {
               year: c.year,
               shift: c.shift,
               status: c.status,
-              teacher_ids: c.teacherIds, // Atualiza array
-              teacher_id: c.teacherIds && c.teacherIds.length > 0 ? c.teacherIds[0] : null, // Compatibilidade legado
+              teacher_ids: c.teacherIds,
+              teacher_id: c.teacherIds && c.teacherIds.length > 0 ? c.teacherIds[0] : null,
               is_remediation: c.isRemediation,
               focus_skills: c.focusSkills
           }).eq('id', c.id);
@@ -331,7 +330,7 @@ export default function App() {
           const { error } = await supabase.from('classes').delete().eq('id', id);
           if(error) {
               if (error.message.includes('violates foreign key constraint') || error.code === '23503') {
-                  alert('Não é possível excluir esta turma pois existem registros vinculados (Alunos). Por favor, utilize a opção "Inativar" para arquivá-la.');
+                  alert('Não é possível excluir esta turma pois existem registros vinculados.');
               } else {
                   throw error;
               }
@@ -393,7 +392,7 @@ export default function App() {
           const { error } = await supabase.from('students').delete().eq('id', id);
           if(error) {
              if (error.message.includes('violates foreign key constraint') || error.code === '23503') {
-                 alert('Não é possível excluir este aluno pois existem avaliações vinculadas. Por favor, utilize a opção "Inativar".');
+                 alert('Não é possível excluir este aluno pois existem avaliações vinculadas.');
              } else {
                  throw error;
              }
@@ -482,20 +481,17 @@ export default function App() {
 
   const handleDeleteUser = async (id: string) => {
       try {
-          // Check dependency: Is this user a teacher in any class?
           const linkedClasses = classes.filter(c => c.teacherIds?.includes(id));
-
           if (linkedClasses.length > 0) {
-              const confirmSoft = window.confirm(`⚠️ Este usuário é responsável por ${linkedClasses.length} turma(s).\n\nA exclusão física não é permitida para manter a integridade dos dados.\n\nDeseja INATIVAR o usuário, bloqueando seu acesso?`);
+              const confirmSoft = window.confirm(`⚠️ Este usuário é responsável por ${linkedClasses.length} turma(s). Deseja apenas INATIVAR o usuário?`);
               if (confirmSoft) {
                   const { error } = await supabase.from('users').update({ status: 'inactive' }).eq('id', id);
                   if (error) throw error;
-                  alert('Usuário inativado com sucesso.');
+                  alert('Usuário inativado.');
                   await fetchData();
               }
               return;
           }
-
           const { error } = await supabase.from('users').delete().eq('id', id);
           if(error) throw error;
           await fetchData();
@@ -566,6 +562,7 @@ export default function App() {
           students={students} 
           users={users} 
           logs={logs}
+          assessments={assessments} // PASSANDO AVALIAÇÕES PARA CLASSLIST
           selectedClassId={selectedClassId || undefined} 
           currentUser={currentUser}
           onSelectClass={setSelectedClassId} 
@@ -573,13 +570,14 @@ export default function App() {
           onAddClass={handleAddClass} 
           onUpdateClass={handleUpdateClass} 
           onDeleteClass={handleDeleteClass}
-          onToggleStatus={handleToggleClassStatus} // Passando função de toggle
+          onToggleStatus={handleToggleClassStatus} 
           onAddStudent={handleAddStudent} 
           onUpdateStudent={handleUpdateStudent} 
           onDeleteStudent={handleDeleteStudent}
-          onToggleStudentStatus={handleToggleStudentStatus} // Passando função de toggle
+          onToggleStudentStatus={handleToggleStudentStatus} 
           onAddLog={handleAddLog}
           onDeleteLog={handleDeleteLog}
+          onAddAssessment={handleAddAssessment} 
         />}
 
         {currentPage === 'students' && <StudentManager 
@@ -589,7 +587,7 @@ export default function App() {
           onAddStudent={handleAddStudent} 
           onUpdateStudent={handleUpdateStudent} 
           onDeleteStudent={handleDeleteStudent} 
-          onToggleStatus={handleToggleStudentStatus} // Passando função de toggle
+          onToggleStatus={handleToggleStudentStatus} 
           onSelectStudent={(id) => { setSelectedStudentId(id); setCurrentPage('student-detail'); }} 
         />}
         
