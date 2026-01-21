@@ -42,7 +42,10 @@ const mapClassFromDB = (c: any): ClassGroup => ({
   year: c.year,
   shift: c.shift,
   status: c.status,
-  teacherId: c.teacher_id,
+  // Tenta usar teacher_ids (novo), se não existir ou for vazio, tenta fallback para teacher_id (antigo)
+  teacherIds: (c.teacher_ids && c.teacher_ids.length > 0) 
+    ? c.teacher_ids 
+    : (c.teacher_id ? [c.teacher_id] : []),
   isRemediation: c.is_remediation,
   focusSkills: c.focus_skills || []
 });
@@ -286,7 +289,8 @@ export default function App() {
         year: c.year,
         shift: c.shift,
         status: c.status,
-        teacher_id: c.teacherId,
+        teacher_ids: c.teacherIds, // Salva o array de IDs
+        teacher_id: c.teacherIds && c.teacherIds.length > 0 ? c.teacherIds[0] : null, // Compatibilidade legado
         is_remediation: c.isRemediation,
         focus_skills: c.focusSkills
       }]);
@@ -303,7 +307,8 @@ export default function App() {
               year: c.year,
               shift: c.shift,
               status: c.status,
-              teacher_id: c.teacherId,
+              teacher_ids: c.teacherIds, // Atualiza array
+              teacher_id: c.teacherIds && c.teacherIds.length > 0 ? c.teacherIds[0] : null, // Compatibilidade legado
               is_remediation: c.isRemediation,
               focus_skills: c.focusSkills
           }).eq('id', c.id);
@@ -478,7 +483,7 @@ export default function App() {
   const handleDeleteUser = async (id: string) => {
       try {
           // Check dependency: Is this user a teacher in any class?
-          const linkedClasses = classes.filter(c => c.teacherId === id);
+          const linkedClasses = classes.filter(c => c.teacherIds?.includes(id));
 
           if (linkedClasses.length > 0) {
               const confirmSoft = window.confirm(`⚠️ Este usuário é responsável por ${linkedClasses.length} turma(s).\n\nA exclusão física não é permitida para manter a integridade dos dados.\n\nDeseja INATIVAR o usuário, bloqueando seu acesso?`);
@@ -529,7 +534,7 @@ export default function App() {
       <aside className="w-72 bg-[#f3efe9] text-[#433422] p-6 hidden md:flex flex-col border-r border-[#eaddcf]">
         <div className="flex items-center gap-3 mb-10 px-2">
             <div className="bg-[#c48b5e] p-2 rounded-xl text-white shadow-md shadow-[#c48b5e]/20"><GraduationCap size={24} /></div>
-            <h1 className="text-xl font-extrabold tracking-tight uppercase text-[#433422]">Educação <span className="text-[#c48b5e]">5.0</span></h1>
+            <h1 className="text-xl font-extrabold tracking-tight uppercase text-[#433422]">Escola <span className="text-[#c48b5e]">Olavo Bilac</span></h1>
         </div>
         
         <nav className="flex-1 space-y-2">

@@ -16,8 +16,15 @@ CREATE TABLE IF NOT EXISTS public.classes (
 );
 
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS is_remediation BOOLEAN DEFAULT false;
-ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_id TEXT;
+-- teacher_id mantido para compatibilidade legado, mas o sistema usará teacher_ids
+ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_id TEXT; 
+ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS teacher_ids TEXT[]; -- Array de IDs (TEXT[])
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS focus_skills JSONB DEFAULT '[]'::jsonb;
+
+-- MIGRAÇÃO DE DADOS (Se teacher_id existir e teacher_ids estiver vazio, copia o valor)
+UPDATE public.classes 
+SET teacher_ids = ARRAY[teacher_id] 
+WHERE teacher_id IS NOT NULL AND (teacher_ids IS NULL OR teacher_ids = '{}');
 
 -- 2. TABELA DE ALUNOS (students)
 CREATE TABLE IF NOT EXISTS public.students (
@@ -104,7 +111,6 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 9. POLÍTICAS DE SEGURANÇA (RLS)
--- Habilita RLS em todas as tabelas
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
@@ -113,7 +119,6 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.class_daily_logs ENABLE ROW LEVEL SECURITY;
 
--- Remove políticas antigas para evitar duplicidade
 DROP POLICY IF EXISTS "Enable access for all users" ON public.classes;
 DROP POLICY IF EXISTS "Enable access for all users" ON public.students;
 DROP POLICY IF EXISTS "Enable access for all users" ON public.skills;
@@ -122,7 +127,6 @@ DROP POLICY IF EXISTS "Enable access for all users" ON public.users;
 DROP POLICY IF EXISTS "Enable access for all users" ON public.subjects;
 DROP POLICY IF EXISTS "Enable access for all users" ON public.class_daily_logs;
 
--- Cria políticas permissivas (para este estágio de desenvolvimento)
 CREATE POLICY "Enable access for all users" ON public.classes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable access for all users" ON public.students FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable access for all users" ON public.skills FOR ALL USING (true) WITH CHECK (true);
@@ -131,5 +135,4 @@ CREATE POLICY "Enable access for all users" ON public.users FOR ALL USING (true)
 CREATE POLICY "Enable access for all users" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable access for all users" ON public.class_daily_logs FOR ALL USING (true) WITH CHECK (true);
 
--- 10. NOTIFICAR REFRESH
 NOTIFY pgrst, 'reload config';

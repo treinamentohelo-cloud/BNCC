@@ -162,7 +162,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
               placeholder="Buscar por nome ou matrícula..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none text-[#433422]"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none bg-white text-black placeholder-gray-500"
             />
         </div>
         <div className="w-full md:w-64 relative">

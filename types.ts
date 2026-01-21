@@ -25,7 +25,7 @@ export interface ClassGroup {
   grade: string; // Ex: 1º Ano Fundamental
   year: number;
   shift?: 'Matutino' | 'Vespertino' | 'Integral' | 'Noturno';
-  teacherId?: string; // ID do usuário professor
+  teacherIds?: string[]; // IDs dos usuários professores (Array)
   status?: 'active' | 'inactive';
   isRemediation?: boolean; // Nova flag para turmas de reforço
   focusSkills?: string[]; // IDs das habilidades foco desta turma

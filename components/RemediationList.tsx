@@ -122,7 +122,8 @@ export const RemediationList: React.FC<RemediationListProps> = ({
         year: new Date().getFullYear(),
         shift: 'Integral',
         status: 'active',
-        teacherId: selectedTeacherId || undefined,
+        // Update: Usar teacherIds array
+        teacherIds: selectedTeacherId ? [selectedTeacherId] : [],
         isRemediation: true
     });
     setIsModalOpen(false);
@@ -229,7 +230,8 @@ export const RemediationList: React.FC<RemediationListProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:grid-cols-2">
                   {remediationClasses.map(cls => {
                       const studentCount = students.filter(s => s.classId === cls.id).length;
-                      const teacherName = users.find(u => u.id === cls.teacherId)?.name || 'Sem professor';
+                      // Update: Handle multi-teacher display (simplified to show first or join)
+                      const teacherNames = cls.teacherIds?.map(id => users.find(u => u.id === id)?.name).filter(Boolean).join(', ') || 'Sem professor';
                       
                       return (
                           <div 
@@ -267,7 +269,7 @@ export const RemediationList: React.FC<RemediationListProps> = ({
                                     <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center border border-gray-200">
                                         <UserIcon size={12} className="text-gray-400"/>
                                     </div>
-                                    <span className="text-xs text-gray-600 font-medium truncate">{teacherName}</span>
+                                    <span className="text-xs text-gray-600 font-medium truncate" title={teacherNames}>{teacherNames}</span>
                               </div>
                               
                               <div className="flex items-center text-gray-500 text-sm font-medium border-t border-gray-100 pt-3">

@@ -239,7 +239,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
           placeholder="Buscar por nome ou e-mail..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#10898b] outline-none shadow-sm transition-all text-[#000039]"
+          className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#10898b] outline-none shadow-sm transition-all text-black placeholder-gray-500"
         />
       </div>
 

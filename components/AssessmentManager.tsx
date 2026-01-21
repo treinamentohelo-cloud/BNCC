@@ -33,7 +33,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
   const [formStudentId, setFormStudentId] = useState('');
   const [formSkillId, setFormSkillId] = useState('');
   const [formStatus, setFormStatus] = useState<AssessmentStatus>(AssessmentStatus.EM_DESENVOLVIMENTO);
-  const [formTerm, setFormTerm] = useState('1º Bimestre');
+  const [formTerm, setFormTerm] = useState('1º Trimestre');
   const [formNotes, setFormNotes] = useState('');
 
   // Helper para gerar ID seguro
@@ -140,7 +140,7 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                 placeholder="Buscar por aluno ou código..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none text-[#000039]"
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none bg-white text-black placeholder-gray-500"
              />
          </div>
          
@@ -152,11 +152,10 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
                     onChange={(e) => setFilterTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#c48b5e] outline-none appearance-none bg-white text-[#000039] text-sm"
                  >
-                     <option value="all">Todos Bimestres</option>
-                     <option value="1º Bimestre">1º Bimestre</option>
-                     <option value="2º Bimestre">2º Bimestre</option>
-                     <option value="3º Bimestre">3º Bimestre</option>
-                     <option value="4º Bimestre">4º Bimestre</option>
+                     <option value="all">Todos Trimestres</option>
+                     <option value="1º Trimestre">1º Trimestre</option>
+                     <option value="2º Trimestre">2º Trimestre</option>
+                     <option value="3º Trimestre">3º Trimestre</option>
                      <option value="Recuperação">Recuperação</option>
                  </select>
              </div>
@@ -316,17 +315,16 @@ export const AssessmentManager: React.FC<AssessmentManagerProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">4. Bimestre</label>
+                        <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">4. Trimestre</label>
                         <select
                             required
                             className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] focus:border-transparent bg-gray-50 focus:bg-white text-[#000039] transition-all"
                             value={formTerm}
                             onChange={e => setFormTerm(e.target.value)}
                         >
-                            <option value="1º Bimestre">1º Bimestre</option>
-                            <option value="2º Bimestre">2º Bimestre</option>
-                            <option value="3º Bimestre">3º Bimestre</option>
-                            <option value="4º Bimestre">4º Bimestre</option>
+                            <option value="1º Trimestre">1º Trimestre</option>
+                            <option value="2º Trimestre">2º Trimestre</option>
+                            <option value="3º Trimestre">3º Trimestre</option>
                             <option value="Recuperação">Recuperação</option>
                         </select>
                     </div>

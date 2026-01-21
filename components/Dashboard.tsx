@@ -116,10 +116,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 className="pl-10 pr-4 py-2 bg-[#fcf9f6] border border-[#eaddcf] rounded-xl text-[#433422] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#c48b5e] appearance-none cursor-pointer"
              >
                 <option value="all">📊 Visão Geral (Ano)</option>
-                <option value="1º Bimestre">1º Bimestre</option>
-                <option value="2º Bimestre">2º Bimestre</option>
-                <option value="3º Bimestre">3º Bimestre</option>
-                <option value="4º Bimestre">4º Bimestre</option>
+                <option value="1º Trimestre">1º Trimestre</option>
+                <option value="2º Trimestre">2º Trimestre</option>
+                <option value="3º Trimestre">3º Trimestre</option>
                 <option value="Recuperação">Recuperação</option>
              </select>
            </div>

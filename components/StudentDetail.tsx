@@ -29,7 +29,8 @@ interface ReportCardData {
     cellStatus: 'success' | 'danger' | 'warning' | 'neutral';
 }
 
-const TERMS = ['1º Bimestre', '2º Bimestre', '3º Bimestre', '4º Bimestre', 'Recuperação'];
+// ATUALIZADO PARA TRIMESTRES
+const TERMS = ['1º Trimestre', '2º Trimestre', '3º Trimestre', 'Recuperação'];
 
 export const StudentDetail: React.FC<StudentDetailProps> = ({
   studentId,
@@ -47,7 +48,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
   // Form State
   const [selectedSkillId, setSelectedSkillId] = useState<string>('');
   const [status, setStatus] = useState<AssessmentStatus>(AssessmentStatus.EM_DESENVOLVIMENTO);
-  const [term, setTerm] = useState('1º Bimestre');
+  const [term, setTerm] = useState('1º Trimestre');
   const [notes, setNotes] = useState('');
 
   if (!student) return null;
@@ -147,7 +148,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
     setIsModalOpen(false);
     setSelectedSkillId('');
     setStatus(AssessmentStatus.EM_DESENVOLVIMENTO);
-    setTerm('1º Bimestre');
+    setTerm('1º Trimestre');
     setNotes('');
   };
 
@@ -275,7 +276,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
                     </div>
                     <div className="divide-y divide-gray-100">
                     {items.map(({ skill, assessment }) => {
-                        const isFocus = focusSkillsIds.includes(skill.id);
+                        const isFocus = focusSkillsIds.includes(skill.id as string);
                         return (
                         <div key={`${skill.id}-${assessment?.id}`} className="p-4 md:p-6 hover:bg-gray-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex-1">
@@ -315,7 +316,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
              <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center print:bg-white print:border-b-2 print:border-black">
                   <div>
                     <h3 className="font-bold text-[#000039] text-lg">Boletim de Desempenho</h3>
-                    <p className="text-xs text-gray-500">Visão consolidada por disciplina e bimestre.</p>
+                    <p className="text-xs text-gray-500">Visão consolidada por disciplina e trimestre.</p>
                   </div>
                   <div className="text-right">
                       <p className="text-xs text-gray-400">Ano Letivo {new Date().getFullYear()}</p>
@@ -329,7 +330,7 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
                              <th className="p-4 text-sm font-bold text-gray-600 uppercase w-1/4 border-r border-gray-100">Disciplina</th>
                              {TERMS.map(t => (
                                  <th key={t} className="p-4 text-xs font-bold text-gray-500 uppercase text-center border-r border-gray-100 last:border-0 min-w-[100px]">
-                                     {t.replace(' Bimestre', 'º Bim.')}
+                                     {t.replace(' Trimestre', 'º Tri.')}
                                  </th>
                              ))}
                          </tr>
@@ -472,13 +473,13 @@ export const StudentDetail: React.FC<StudentDetailProps> = ({
                 <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Habilidade BNCC</label>
                 <select required value={selectedSkillId} onChange={(e) => setSelectedSkillId(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-gray-50 focus:bg-white text-[#000039]">
                   <option value="">Selecione...</option>
-                  {skills.map(s => (<option key={s.id} value={s.id} className={focusSkillsIds.includes(s.id) ? 'font-bold text-[#c48b5e]' : ''}>{focusSkillsIds.includes(s.id) ? '★ ' : ''}{s.code} - {s.subject}</option>))}
+                  {skills.map(s => (<option key={s.id} value={s.id} className={focusSkillsIds.includes(s.id as string) ? 'font-bold text-[#c48b5e]' : ''}>{focusSkillsIds.includes(s.id as string) ? '★ ' : ''}{s.code} - {s.subject}</option>))}
                 </select>
                 {selectedSkillId && <p className="mt-2 text-xs text-gray-600 bg-[#eaddcf]/20 p-3 rounded-lg border border-[#eaddcf]">{skills.find(s => s.id === selectedSkillId)?.description}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Bimestre</label>
+                    <label className="block text-sm font-semibold text-[#c48b5e] mb-1.5 ml-1">Trimestre</label>
                     <select required className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#c48b5e] bg-gray-50 focus:bg-white text-[#000039]" value={term} onChange={e => setTerm(e.target.value)}>
                         {TERMS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
